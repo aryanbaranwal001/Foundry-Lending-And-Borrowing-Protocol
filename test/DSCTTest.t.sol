@@ -16,7 +16,7 @@ contract DSCTTEST is Test {
     function setUp() public {
         DeployDSCT deployDSCT = new DeployDSCT();
         dsct = deployDSCT.run();
-        // vm.deal(USER, 100 ether);
+        vm.deal(USER, 100 ether);
     }
 
     function testMintAndBalanceForNotOwner() public {
