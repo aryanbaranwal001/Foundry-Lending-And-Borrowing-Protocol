@@ -55,7 +55,7 @@ clear:
 
 #################################
 # General copy-paste things
-# import {Script} from "lib/forge-std/src/Script.sol";
+# import {Script, console} from "lib/forge-std/src/Script.sol";
 # import {Test, console} from "lib/forge-std/src/Test.sol";
-
+# 
 # 115792089237316195423570985008687907853269984665640564039457584007913129639936
