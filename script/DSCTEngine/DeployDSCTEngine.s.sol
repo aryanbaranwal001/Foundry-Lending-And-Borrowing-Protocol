@@ -12,18 +12,18 @@ contract DeployDSCTEngine is Script {
 
     address SunEthAddress;
     address EarthEthAddress;
-    address SunEthAggregator;
-    address EarthEthAggregator;
+    address SunEthPriceFeedAddress;
+    address EarthEthPriceFeedAddress;
     address DSCTAddress;
 
     function deployDSCTEngine() public returns (DSCTEngine, HelperConfigDSCTEngine) {
         HelperConfigDSCTEngine helperConfigDSCTEngine = new HelperConfigDSCTEngine();
 
-        (SunEthAddress, EarthEthAggregator, SunEthAggregator, EarthEthAggregator, DSCTAddress) =
+        (SunEthAddress, EarthEthAddress, SunEthPriceFeedAddress, EarthEthPriceFeedAddress, DSCTAddress) =
             helperConfigDSCTEngine.getNetworkConfigs();
 
-        tokenAddresses = [SunEthAddress, EarthEthAggregator];
-        tokenPriceFeedAddresses = [SunEthAggregator, EarthEthAggregator];
+        tokenAddresses = [SunEthAddress, EarthEthAddress];
+        tokenPriceFeedAddresses = [SunEthPriceFeedAddress, EarthEthPriceFeedAddress];
 
         vm.startBroadcast();
         DSCTEngine dsctEngine = new DSCTEngine(tokenAddresses, tokenPriceFeedAddresses, DSCTtokenAddress);

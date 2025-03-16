@@ -59,6 +59,6 @@ contract DSCTTEST is Test {
         console.log("--------------------");
 
         // console.log(dsctEngine.getPriceFeedAddressForTokenAddress(SunEthAddress));
-            // dsctEngine.depositCollateral(SunEthAddress, 100 ether);
+        // dsctEngine.depositCollateral(SunEthAddress, 100 ether);
     }
 }

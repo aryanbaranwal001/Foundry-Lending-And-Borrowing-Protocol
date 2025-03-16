@@ -34,6 +34,7 @@ contract DSCTEngine {
 
         for (uint256 i = 0; i < tokenPriceFeedAddresses.length; i++) {
             s_tokenAddressToPriceFeedAddress[tokenAddresses[i]] = tokenPriceFeedAddresses[i];
+
         }
     }
 
@@ -75,7 +76,4 @@ contract DSCTEngine {
     function getPriceFeedAddressForTokenAddress(address tokenAddress) public view returns (address) {
         return s_tokenAddressToPriceFeedAddress[tokenAddress];
     }
-
-
-
 }

@@ -8,6 +8,8 @@ import {EarthEth} from "src/DSCTEngineTokens/EarthEth.sol";
 import {EarthEthAggregator} from "src/DSCTEngineTokenAggregator/EarthEthAggregator.sol";
 import {SunEthAggregator} from "src/DSCTEngineTokenAggregator/SunEthAggregator.sol";
 
+// aggregator = contract
+
 contract HelperConfigDSCTEngine is Script {
     DSCT dsct;
     SunEth sunEth;
@@ -19,35 +21,21 @@ contract HelperConfigDSCTEngine is Script {
     int256 public constant SUN_ETH_I_ANSWER = 4000e8;
     int256 public constant EARTH_ETH_I_ANSWER = 1000e8;
 
-    // To Remove Shadow Declarations
-    address SunEthAddress;
-    address EarthEthAddress;
-    address DSCTAddress;
+    address public SunEthAddress;
+    address public EarthEthAddress;
+    address public SunEthPriceFeedAddress;
+    address public EarthEthPriceFeedAddress;
+    address public DSCTAddress;
 
     function DeployTokensAndAggregators()
         public
         returns (
-            address,
-            /**
-             * SunEthAddress
-             */
-            address,
-            /**
-             * EarthEthAddress
-             */
-            address,
-            /**
-             * SunEthPriceFeedAddress
-             */
-            address,
-            /**
-             * EarthEthPriceFeedAddress
-             */
-            address
+            address, // SunEthAddress
+            address, // EarthEthAddress
+            address, // SunEthPriceFeedAddress
+            address, // EarthEthPriceFeedAddress
+            address // DSCTAddress
         )
-    /**
-     * DSCTAddress
-     */
     {
         vm.startBroadcast();
         dsct = new DSCT();
@@ -57,35 +45,31 @@ contract HelperConfigDSCTEngine is Script {
         earthEthAggregator = new EarthEthAggregator(DECIMALS, SUN_ETH_I_ANSWER);
         vm.stopBroadcast();
 
-        return
-            (address(sunEth), address(earthEth), address(sunEthAggregator), address(earthEthAggregator), address(dsct));
+        SunEthAddress = address(sunEth);
+        EarthEthAddress = address(earthEth);
+        SunEthPriceFeedAddress = address(sunEthAggregator);
+        EarthEthPriceFeedAddress = address(earthEthAggregator);
+        DSCTAddress = address(dsct);
+
+        return (SunEthAddress, EarthEthAddress, SunEthPriceFeedAddress, EarthEthPriceFeedAddress, DSCTAddress);
     }
 
     function getNetworkConfigs()
         public
         returns (
-            address,
-            /**
-             * SunEthAddress
-             */
-            address,
-            /**
-             * EarthEthAddress
-             */
-            address,
-            /**
-             * SunEthAggregator
-             */
-            address,
-            /**
-             * EarthEthPriceFeedAggregator
-             */
-            address
+            address, // SunEthAddress
+            address, // EarthEthAddress
+            address, // SunEthPriceFeedAddress
+            address, // EarthEthPriceFeedAddress
+            address // DSCTAddress
         )
-    /**
-     * DSCTAddress
-     */
     {
-        return DeployTokensAndAggregators();
+        if (
+            SunEthAddress == address(0) && EarthEthAddress == address(0) && SunEthPriceFeedAddress == address(0)
+                && EarthEthPriceFeedAddress == address(0) && DSCTAddress == address(0)
+        ) {
+            return DeployTokensAndAggregators();
+        }
+        return (SunEthAddress, EarthEthAddress, SunEthPriceFeedAddress, EarthEthPriceFeedAddress, DSCTAddress);
     }
 }
