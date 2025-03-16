@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.0;
 
 import {Ownable} from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
@@ -24,7 +23,4 @@ contract DSCT is ERC20Burnable, Ownable {
     function getOwner() public view returns (address) {
         return super.owner();
     }
-
-
-
 }

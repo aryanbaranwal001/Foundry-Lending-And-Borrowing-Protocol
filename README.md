@@ -11,3 +11,4 @@
 
 # Things I will have to look back on
 1. Private variables can't be inherited in child contracts, but if function that returns it, returns it. 
+2. check if getTimeOut is visible in DSCTEngine contract.
