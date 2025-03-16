@@ -27,12 +27,27 @@ contract HelperConfigDSCTEngine is Script {
     function DeployTokensAndAggregators()
         public
         returns (
-            address /** SunEthAddress */,
-            address /** EarthEthAddress */ ,
-            address /** SunEthPriceFeedAddress */,
-            address /** EarthEthPriceFeedAddress */,
-            address /** DSCTAddress */
+            address,
+            /**
+             * SunEthAddress
+             */
+            address,
+            /**
+             * EarthEthAddress
+             */
+            address,
+            /**
+             * SunEthPriceFeedAddress
+             */
+            address,
+            /**
+             * EarthEthPriceFeedAddress
+             */
+            address
         )
+    /**
+     * DSCTAddress
+     */
     {
         vm.startBroadcast();
         dsct = new DSCT();
@@ -42,24 +57,34 @@ contract HelperConfigDSCTEngine is Script {
         earthEthAggregator = new EarthEthAggregator(DECIMALS, SUN_ETH_I_ANSWER);
         vm.stopBroadcast();
 
-        return (
-            address(sunEth),
-            address(earthEth),
-            address(sunEthAggregator),
-            address(earthEthAggregator),
-            address(dsct)
-        );
+        return
+            (address(sunEth), address(earthEth), address(sunEthAggregator), address(earthEthAggregator), address(dsct));
     }
 
     function getNetworkConfigs()
         public
         returns (
-            address /** SunEthAddress */,
-            address /** EarthEthAddress */ ,
-            address /** SunEthAggregator */,
-            address /** EarthEthPriceFeedAggregator */,
-            address /** DSCTAddress */
+            address,
+            /**
+             * SunEthAddress
+             */
+            address,
+            /**
+             * EarthEthAddress
+             */
+            address,
+            /**
+             * SunEthAggregator
+             */
+            address,
+            /**
+             * EarthEthPriceFeedAggregator
+             */
+            address
         )
+    /**
+     * DSCTAddress
+     */
     {
         return DeployTokensAndAggregators();
     }

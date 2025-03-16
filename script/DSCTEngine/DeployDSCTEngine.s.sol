@@ -16,8 +16,7 @@ contract DeployDSCTEngine is Script {
     address EarthEthAggregator;
     address DSCTAddress;
 
-
-    function deployDSCTEngine() public returns (DSCTEngine) {
+    function deployDSCTEngine() public returns (DSCTEngine, HelperConfigDSCTEngine) {
         HelperConfigDSCTEngine helperConfigDSCTEngine = new HelperConfigDSCTEngine();
 
         (SunEthAddress, EarthEthAggregator, SunEthAggregator, EarthEthAggregator, DSCTAddress) =
@@ -29,10 +28,10 @@ contract DeployDSCTEngine is Script {
         vm.startBroadcast();
         DSCTEngine dsctEngine = new DSCTEngine(tokenAddresses, tokenPriceFeedAddresses, DSCTtokenAddress);
         vm.stopBroadcast();
-        return dsctEngine;
+        return (dsctEngine, helperConfigDSCTEngine);
     }
 
-    function run() public returns (DSCTEngine) {
-        return deployDSCTEngine();
+    function run() public returns (DSCTEngine, HelperConfigDSCTEngine) {
+        return (deployDSCTEngine());
     }
 }

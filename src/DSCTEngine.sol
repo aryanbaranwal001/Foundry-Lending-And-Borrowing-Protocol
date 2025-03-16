@@ -67,4 +67,15 @@ contract DSCTEngine {
         }
         _;
     }
+
+    /*//////////////////////////////////////////////////////////////
+                            GETTER FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function getPriceFeedAddressForTokenAddress(address tokenAddress) public view returns (address) {
+        return s_tokenAddressToPriceFeedAddress[tokenAddress];
+    }
+
+
+
 }
