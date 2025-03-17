@@ -49,16 +49,11 @@ contract LPContractTest is Test {
         vm.deal(USER, 100 ether);
     }
 
-    function testCheckingDepositeCollateral() public view {
-        console.log("--------------------");
-        console.log("SunEthAddress: ", SunEthAddress);
-        console.log("EarthEthAddress: ", EarthEthAddress);
-        console.log("SunEthPriceFeedAddress: ", SunEthPriceFeedAddress);
-        console.log("EarthEthPriceFeedAddress: ", EarthEthPriceFeedAddress);
-        console.log("LPTokenAddress: ", LPTokenAddress);
-        console.log("--------------------");
+    function testCheckInitialVolumeOfSunAndEarthTokens() public {
+        uint256 sunEthAmt = lPContract.getTotalSunEthInPool();
+        uint256 earthEthAmt = lPContract.getTotalEarthEthInPool();
 
-        // console.log(lPContract.getPriceFeedAddressForTokenAddress(SunEthAddress));
-        // lPContract.depositCollateral(SunEthAddress, 100 ether);
+        assert(sunEthAmt == 2.5e20);
+        assert(earthEthAmt == 1e21);
     }
 }

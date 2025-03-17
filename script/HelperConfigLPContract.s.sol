@@ -41,8 +41,8 @@ contract HelperConfigLPContract is Script {
         lpToken = new LPToken();
         sunEth = new SunEth();
         earthEth = new EarthEth();
-        sunEthAggregator = new SunEthAggregator(DECIMALS, EARTH_ETH_I_ANSWER);
-        earthEthAggregator = new EarthEthAggregator(DECIMALS, SUN_ETH_I_ANSWER);
+        sunEthAggregator = new SunEthAggregator(DECIMALS, SUN_ETH_I_ANSWER);
+        earthEthAggregator = new EarthEthAggregator(DECIMALS, EARTH_ETH_I_ANSWER);
         vm.stopBroadcast();
 
         SunEthAddress = address(sunEth);

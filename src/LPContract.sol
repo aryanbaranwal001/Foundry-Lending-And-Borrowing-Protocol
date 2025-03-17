@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {console} from "lib/forge-std/src/Script.sol";
+
 import {IERC20} from "lib/forge-std/src/interfaces/IERC20.sol";
 import {LPToken} from "src/LPToken.sol";
 
@@ -19,6 +21,10 @@ contract LPContract {
     error LPContract__TokenNotAllowed(address tokenAddress);
     error LPContract__NeedsMoreThanZero();
 
+    /*//////////////////////////////////////////////////////////////
+                                 EVENTS
+    //////////////////////////////////////////////////////////////*/
+
     event AddedToPool(address user, uint256 sunEthAmount, uint256 earthEthAmount);
 
     /*//////////////////////////////////////////////////////////////
@@ -27,22 +33,19 @@ contract LPContract {
 
     mapping(address user => mapping(address tokenAddress => uint256 tokenAmount)) public
         s_addressToTotalAmounOfParticularToken;
-
-    LPToken public immutable i_lptoken;
     mapping(address tokenAddress => address tokenPriceFeedAddress) public s_tokenAddressToPriceFeedAddress;
+
     SunEth sunEth;
     EarthEth earthEth;
     SunEthAggregator sunEthAggregator;
     EarthEthAggregator earthEthAggregator;
+    LPToken public immutable i_lptoken;
 
     uint256 public totalSunEthInPool;
     uint256 public totalEarthEthInPool;
-
     uint256 public totalLPTokensMinted;
 
-        uint256 InitialTotalValueOfOneAssetInPoolInUsd;
-
-
+    uint256 InitialTotalValueOfOneAssetInPoolInUsd;
     bool tempVar = true; // a workaround
 
     /*//////////////////////////////////////////////////////////////
@@ -70,8 +73,6 @@ contract LPContract {
         sunEthAggregator = SunEthAggregator(tokenPriceFeedAddresses[0]);
         earthEthAggregator = EarthEthAggregator(tokenPriceFeedAddresses[1]);
         InitialTotalValueOfOneAssetInPoolInUsd = InitialTotalValueOfOneAssetInPoolInUsdInput;
-        
-
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -80,29 +81,29 @@ contract LPContract {
 
     function constructor2() public {
         if (tempVar) {
+            (, int256 rateSunEth,,,) = sunEthAggregator.latestRoundData();
+            (, int256 rateEarthEth,,,) = earthEthAggregator.latestRoundData();
 
-        (, int256 rateSunEth,,,) = sunEthAggregator.latestRoundData();
-        (, int256 rateEarthEth,,,) = earthEthAggregator.latestRoundData();
+            // 1e6 * 1e18 = x * rate * 1e10 / 1e18
+            // 1e6 is amount in dollars
+            // x is amount of ethers in wei
+            // rate is rate of token in dollars with 8 decimals (given in helper config)
+            // rest number are for solidity math/precision control
 
-        // 1e6 * 1e18 = x * rate * 1e10 / 1e18
-        // 1e6 is amount in dollars
-        // x is amount of ethers in wei
-        // rate is rate of token in dollars with 8 decimals (given in helper config)
-        // rest number are for solidity math/precision control
+            uint256 amountOfInitialSunEthInPool = (InitialTotalValueOfOneAssetInPoolInUsd * 1e26) / uint256(rateSunEth);
+            uint256 amountOfInitialEarthEthInPool =
+                (InitialTotalValueOfOneAssetInPoolInUsd * 1e26) / uint256(rateEarthEth);
 
-        uint256 amountOfInitialSunEthInPool = (InitialTotalValueOfOneAssetInPoolInUsd * 1e26) / uint256(rateSunEth);
-        uint256 amountOfInitialEarthEthInPool = (InitialTotalValueOfOneAssetInPoolInUsd * 1e26) / uint256(rateEarthEth);
+            sunEth.mint(address(this), (amountOfInitialSunEthInPool));
+            earthEth.mint(address(this), (amountOfInitialEarthEthInPool));
 
-        sunEth.mint(address(this), (amountOfInitialSunEthInPool));
-        earthEth.mint(address(this), (amountOfInitialEarthEthInPool));
+            totalSunEthInPool += amountOfInitialSunEthInPool;
+            totalEarthEthInPool += amountOfInitialEarthEthInPool;
 
-        totalSunEthInPool += amountOfInitialSunEthInPool;
-        totalEarthEthInPool += amountOfInitialEarthEthInPool;
+            // minting LP tokens to address(this) contract
 
-        // minting LP tokens to address(this) contract
-
-        mintInitialLPToken(amountOfInitialSunEthInPool, amountOfInitialEarthEthInPool);
-        tempVar = false;
+            mintInitialLPToken(amountOfInitialSunEthInPool, amountOfInitialEarthEthInPool);
+            tempVar = false;
         }
     }
 
@@ -175,7 +176,7 @@ contract LPContract {
                      CALCULATE ARBITRAGE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function getArbitrageForExchangingSunEthForEarthEth(uint256 amountOfSunEth) public  returns (uint256) {
+    function getArbitrageForExchangingSunEthForEarthEth(uint256 amountOfSunEth) public returns (uint256) {
         (, int256 rateSunEth,,,) = sunEthAggregator.latestRoundData();
         (, int256 rateEarthEth,,,) = earthEthAggregator.latestRoundData();
 
@@ -186,14 +187,15 @@ contract LPContract {
         return amountInDollars;
     }
 
-    function getArbitrageForExchangingEarthEthForSunEth(uint256 amountOfEarthEth) public  returns (uint256) {
+    function getArbitrageForExchangingEarthEthForSunEth(uint256 amountOfEarthEth) public returns (uint256) {
         (, int256 rateSunEth,,,) = sunEthAggregator.latestRoundData();
         (, int256 rateEarthEth,,,) = earthEthAggregator.latestRoundData();
 
         uint256 sunEthAmt = getAmtAnotherTokenForAToken(amountOfEarthEth, totalEarthEthInPool, totalSunEthInPool);
 
-        uint256 amountInDollars =
-            uint256(((sunEthAmt * uint256(rateSunEth)) * 1e10 - (amountOfEarthEth * uint256(rateEarthEth)) * 1e10) / 1e36);
+        uint256 amountInDollars = uint256(
+            ((sunEthAmt * uint256(rateSunEth)) * 1e10 - (amountOfEarthEth * uint256(rateEarthEth)) * 1e10) / 1e36
+        );
         return amountInDollars;
     }
 
@@ -301,5 +303,13 @@ contract LPContract {
 
     function getPriceFeedAddressForTokenAddress(address tokenAddress) public view returns (address) {
         return s_tokenAddressToPriceFeedAddress[tokenAddress];
+    }
+
+    function getTotalSunEthInPool() public view returns (uint256) {
+        return totalSunEthInPool;
+    }
+
+    function getTotalEarthEthInPool() public view returns (uint256) {
+        return totalEarthEthInPool;
     }
 }
