@@ -205,10 +205,7 @@ contract LPContract is ReentrancyGuard {
                             HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function getTheMaximumBasket(uint256 AmountOfSunEth, uint256 AmountOfEarthEth)
-        public
-        returns (uint256, uint256)
-    {
+    function getTheMaximumBasket(uint256 AmountOfSunEth, uint256 AmountOfEarthEth) public returns (uint256, uint256) {
         (uint256 s1, uint256 e1) = getBasket(AmountOfSunEth, AmountOfEarthEth, totalSunEthInPool, totalEarthEthInPool);
         (uint256 s2, uint256 e2) =
             getBasketWithReverse(AmountOfSunEth, AmountOfEarthEth, totalSunEthInPool, totalEarthEthInPool);
@@ -232,25 +229,25 @@ contract LPContract is ReentrancyGuard {
         returns (uint256, uint256)
     {
         int256 x;
+        int256 y;
         uint256 sun = ItotalSunEthInPool;
         uint256 earth = ItotalEarthEthInPool;
-        // (s-x)/e = sun/earth
-        // on solving we get (s*earth - sun*e)/earth = x
-        console.log("s, e", s, e);
-        console.log("sun, earth", ItotalSunEthInPool, ItotalEarthEthInPool);
-        console.log("From here I should begin");
-        
-        x = int256((s * earth - sun * e) / earth);
+        int256 z;
+        // (s-z)/e = sun/earth
+        // on solving we get (s*earth - sun*e)/earth = z
 
-        if (x < 0) {
+        x = int256(s);
+        y = int256((sun * e) / earth);
+
+        z = x - y;
+
+        if (z < 0) {
             return (0, 0);
         }
 
-        uint256 y = uint256(((s * earth - sun * e) / earth) - 1);
-
         uint256 s1;
 
-        s1 = (s - y);
+        s1 = (s - uint256(z));
         return (s1, e);
     }
 

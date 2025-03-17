@@ -48,6 +48,4 @@ contract LPContractTest is Test {
 
         vm.deal(USER, 100 ether);
     }
-
-
 }

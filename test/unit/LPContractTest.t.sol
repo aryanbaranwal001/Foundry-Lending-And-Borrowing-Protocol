@@ -72,8 +72,8 @@ contract LPContractTest is Test {
 
     function testAddToPool() public {
         vm.startPrank(USER);
-            sunEth.mint(USER, 10 ether);
-            earthEth.mint(USER, 10 ether);
+        sunEth.mint(USER, 10 ether);
+        earthEth.mint(USER, 10 ether);
         vm.stopPrank();
 
         lPContract.addToPool(10 ether, 8 ether);
