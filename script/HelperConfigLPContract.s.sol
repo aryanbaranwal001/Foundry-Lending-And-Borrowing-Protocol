@@ -5,8 +5,8 @@ import {Script, console} from "lib/forge-std/src/Script.sol";
 import {LPToken} from "src/LPToken.sol";
 import {SunEth} from "src/LPExternalTokens/SunEth.sol";
 import {EarthEth} from "src/LPExternalTokens/EarthEth.sol";
-import {EarthEthAggregator} from "src/LPExternalAggregators/EarthEthAggregator.sol";
 import {SunEthAggregator} from "src/LPExternalAggregators/SunEthAggregator.sol";
+import {EarthEthAggregator} from "src/LPExternalAggregators/EarthEthAggregator.sol";
 
 // aggregator = contract
 
@@ -18,8 +18,8 @@ contract HelperConfigLPContract is Script {
     EarthEthAggregator earthEthAggregator;
 
     uint8 public constant DECIMALS = 8;
-    int256 public constant SUN_ETH_I_ANSWER = 4000e8;
-    int256 public constant EARTH_ETH_I_ANSWER = 1000e8;
+    int256 public constant SUN_ETH_I_ANSWER = 4000e8; // $4000 for 1 SunEth
+    int256 public constant EARTH_ETH_I_ANSWER = 1000e8; // $1000 for 1 EarthEth
 
     address public SunEthAddress;
     address public EarthEthAddress;

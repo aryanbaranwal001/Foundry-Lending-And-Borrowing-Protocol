@@ -34,7 +34,6 @@ contract LPContractTest is Test {
     HelperConfigLPContract helperConfigLPContract;
 
     function setUp() public {
-        
         DeployLPContract deployLPContract = new DeployLPContract();
         (lPContract, helperConfigLPContract) = deployLPContract.run();
 
@@ -50,7 +49,7 @@ contract LPContractTest is Test {
         vm.deal(USER, 100 ether);
     }
 
-    function testCheckingDepositeCollateral() view public {
+    function testCheckingDepositeCollateral() public view {
         console.log("--------------------");
         console.log("SunEthAddress: ", SunEthAddress);
         console.log("EarthEthAddress: ", EarthEthAddress);

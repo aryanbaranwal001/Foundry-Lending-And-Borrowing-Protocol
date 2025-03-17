@@ -8,11 +8,11 @@ import {ERC20Burnable, ERC20} from "lib/openzeppelin-contracts/contracts/token/E
 contract SunEth is ERC20Burnable, Ownable {
     constructor() Ownable(msg.sender) ERC20("SunEth", "STH") {}
 
-    function mint(address account, uint256 amount) public onlyOwner {
+    function mint(address account, int256 amount) public onlyOwner {
         super._mint(account, amount);
     }
 
-    function burn(address accountAddresToBurn, uint256 amountToBurn) public onlyOwner {
+    function burn(address accountAddresToBurn, int256 amountToBurn) public onlyOwner {
         super._burn(accountAddresToBurn, amountToBurn);
     }
 

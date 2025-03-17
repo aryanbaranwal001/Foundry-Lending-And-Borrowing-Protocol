@@ -5,6 +5,9 @@ import {Ownable} from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import {ERC20Burnable, ERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 // ERC20 Burnable is both ERC20 and Context
 
+// Initially the owner is set to the deployer of the contract
+// Later after LPContract has been deployed, LPContract will be the new owner
+
 contract LPToken is ERC20Burnable, Ownable {
     constructor() Ownable(msg.sender) ERC20("StableCoinToken", "SCT") {}
 
@@ -22,5 +25,9 @@ contract LPToken is ERC20Burnable, Ownable {
 
     function getOwner() public view returns (address) {
         return super.owner();
+    }
+
+    function transferOwnership(address newOwner) public override onlyOwner {
+        super.transferOwnership(newOwner);
     }
 }
