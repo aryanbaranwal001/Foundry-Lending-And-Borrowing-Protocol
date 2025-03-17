@@ -79,7 +79,7 @@ contract LPContract {
                               CONSTRUCTOR 2
     //////////////////////////////////////////////////////////////*/
 
-    function constructor2() public {
+    function constructor2() public returns (bool) {
         if (tempVar) {
             (, int256 rateSunEth,,,) = sunEthAggregator.latestRoundData();
             (, int256 rateEarthEth,,,) = earthEthAggregator.latestRoundData();
@@ -104,7 +104,9 @@ contract LPContract {
 
             mintInitialLPToken(amountOfInitialSunEthInPool, amountOfInitialEarthEthInPool);
             tempVar = false;
+            return false;
         }
+        return true;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -286,7 +288,7 @@ contract LPContract {
             y = z;
             z = (x / z + z) / 2;
         }
-        return y * 1e10;
+        return y;
     }
 
     function getAmtAnotherTokenForAToken(uint256 tokenAmount, uint256 tokenTotalAmt, uint256 AnotherTokenTotalAmt)

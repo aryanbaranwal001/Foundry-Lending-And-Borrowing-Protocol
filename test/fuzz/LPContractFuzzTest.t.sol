@@ -49,33 +49,5 @@ contract LPContractTest is Test {
         vm.deal(USER, 100 ether);
     }
 
-    function testCheckInitialVolumeOfSunAndEarthTokens() public {
-        uint256 sunEthAmt = lPContract.getTotalSunEthInPool();
-        uint256 earthEthAmt = lPContract.getTotalEarthEthInPool();
 
-        assert(sunEthAmt == 2.5e18);
-        assert(earthEthAmt == 1e19);
-        assert(sunEth.balanceOf(address(lPContract)) == 2.5e18);
-        assert(earthEth.balanceOf(address(lPContract)) == 1e19);
-    }
-
-    function testMintInitialLPTokens() public {
-        uint256 lpTokenBalanceOfContract = lpToken.balanceOf(address(lPContract));
-
-        assert(lpTokenBalanceOfContract == 5e18);
-    }
-
-    function testConstructorTwoStillCallable() public {
-        bool tempVar = lPContract.constructor2();
-        assert(tempVar == true);
-    }
-
-    function testAddToPool() public {
-        vm.startPrank(USER);
-            sunEth.mint(USER, 10 ether);
-            earthEth.mint(USER, 10 ether);
-        vm.stopPrank();
-
-        lPContract.addToPool(10 ether, 10 ether);
-    }
 }

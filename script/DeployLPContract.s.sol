@@ -16,7 +16,7 @@ contract DeployLPContract is Script {
     address SunEthPriceFeedAddress;
     address EarthEthPriceFeedAddress;
 
-    uint256 public constant InitialTotalValueOfOneAssetInPoolInUsd = 1_000_000;
+    uint256 public constant InitialTotalValueOfOneAssetInPoolInUsd = 10_000;
 
     function deployLPContract() public returns (LPContract, HelperConfigLPContract) {
         HelperConfigLPContract helperConfigLPContract = new HelperConfigLPContract();
