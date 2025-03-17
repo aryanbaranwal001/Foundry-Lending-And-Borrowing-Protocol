@@ -66,12 +66,12 @@ contract LPContract {
         // rate is rate of token in dollars with 8 decimals (given in helper config)
         // rest number are for solidity math/precision control
 
-        int256 amountOfInitialSunEthInPool = int256(InitialTotalValueOfOneAssetInPoolInUsd * 1e26) / rateSunEth;
-        int256 amountOfInitialEarthEthInPool = int256(InitialTotalValueOfOneAssetInPoolInUsd * 1e26) / rateEarthEth; 
+        uint256 amountOfInitialSunEthInPool = (InitialTotalValueOfOneAssetInPoolInUsd * 1e26) / uint256(rateSunEth);
+        uint256 amountOfInitialEarthEthInPool = (InitialTotalValueOfOneAssetInPoolInUsd * 1e26) / uint256(rateEarthEth); 
 
 
-        sunEth.mint(address(this), amountOfInitialSunEthInPool);
-        earthEth.mint(address(this), amountOfInitialEarthEthInPool);
+        sunEth.mint(address(this), (amountOfInitialSunEthInPool));
+        earthEth.mint(address(this), (amountOfInitialEarthEthInPool));
 
         totalSunEthInPool += amountOfInitialSunEthInPool;
         totalEarthEthInPool += amountOfInitialEarthEthInPool;
@@ -82,8 +82,8 @@ contract LPContract {
     //////////////////////////////////////////////////////////////*/
 
     function addToPool(uint256 AmountOfSunEth, uint256 AmountOfEarthEth) public { // This function will select the largest basket of token to be added to pool
-        sunEth.transfer(address(this), AmountOfSunEth);
-        earthEth.transfer(address(this), AmountOfEarthEth);
+        sunEth.transfer(address(this), (AmountOfSunEth));
+        earthEth.transfer(address(this), (AmountOfEarthEth));
 
 
 
