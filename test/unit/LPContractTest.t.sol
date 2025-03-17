@@ -71,11 +71,37 @@ contract LPContractTest is Test {
     }
 
     function testAddToPool() public {
-        vm.startPrank(USER);
+        uint256 s2 = sunEth.balanceOf(USER);
+        uint256 e2 = earthEth.balanceOf(USER);
+        console.log(" Initial Balance of User", s2, e2);
+
         sunEth.mint(USER, 10 ether);
         earthEth.mint(USER, 10 ether);
-        vm.stopPrank();
+
+        uint256 s1 = sunEth.balanceOf(USER);
+        uint256 e1 = earthEth.balanceOf(USER);
+        console.log(" after minting Balance of User", s1, e1);
+
+        uint256 s3 = sunEth.balanceOf(address(lPContract));
+        uint256 e3 = earthEth.balanceOf(address(lPContract));
+        console.log(" before add to pool balance of contract", s3, e3);
+
 
         lPContract.addToPool(10 ether, 8 ether);
+
+        uint256 s4 = sunEth.balanceOf(address(lPContract));
+        uint256 e4 = earthEth.balanceOf(address(lPContract));
+        console.log(" after add to pool balance of contract", s4, e4);
+
+        console.log("sunEthAddress", address(sunEth));
+
+        vm.startPrank(USER);
+
+        // uint256 s1 = sunEth.balanceOf(USER);
+        // uint256 e1 = earthEth.balanceOf(USER);
+        // uint256 s3 = sunEth.balanceOf(address(lPContract));
+        // uint256 e3 = earthEth.balanceOf(address(lPContract));        
+        // console.log(s3, e3);
+        vm.stopPrank();
     }
 }

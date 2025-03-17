@@ -26,6 +26,8 @@ contract LPContract is ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     event AddedToPool(address user, uint256 sunEthAmount, uint256 earthEthAmount);
+    event BasketChosenChoices(uint256 sunEthAmount, uint256 earthEthAmount);
+    event BasketChosenFinal(uint256 sunEthAmount, uint256 earthEthAmount);
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -119,6 +121,8 @@ contract LPContract is ReentrancyGuard {
 
         sunEth.transfer(address(this), (sunEthAmt));
         earthEth.transfer(address(this), (earthEthAmt));
+        console.log("msg.sender", msg.sender);
+        console.log("sunEth address in contract",address(sunEth));
 
         uint256 s = getLPTokensAmtToMint(sunEthAmt, totalSunEthInPool);
 
@@ -213,12 +217,17 @@ contract LPContract is ReentrancyGuard {
         (, int256 SunRateEth,,,) = sunEthAggregator.latestRoundData();
         (, int256 EarthRateEth,,,) = earthEthAggregator.latestRoundData();
 
+        emit BasketChosenChoices(s1, e1);
+        emit BasketChosenChoices(s2, e2);
+
         if (
-            (s1 * uint256(SunRateEth) + e1 * uint256(EarthRateEth))
-                > (s2 * uint256(SunRateEth) + e2 * uint256(EarthRateEth))
+            ((s1 * uint256(SunRateEth) + e1 * uint256(EarthRateEth)))
+                > ((s2 * uint256(SunRateEth) + e2 * uint256(EarthRateEth)))  // overflow error, or underflow error may happen
         ) {
+            emit BasketChosenFinal(s1, e1);
             return (s1, e1);
         } else {
+            emit BasketChosenFinal(s2, e2);
             return (s2, e2);
         }
     }
