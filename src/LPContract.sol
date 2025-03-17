@@ -85,8 +85,7 @@ contract LPContract {
 
         // minting LP tokens to address(this) contract
 
-         mintInitialLPToken(amountOfInitialSunEthInPool, amountOfInitialEarthEthInPool);
-
+        mintInitialLPToken(amountOfInitialSunEthInPool, amountOfInitialEarthEthInPool);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -101,16 +100,18 @@ contract LPContract {
         earthEth.transfer(address(this), (earthEthAmt));
 
         uint256 s = getLPTokensAmtToMint(sunEthAmt, totalSunEthInPool);
-        
+
         totalSunEthInPool += sunEthAmt;
         totalEarthEthInPool += earthEthAmt;
-
 
         mintLPToken(msg.sender, s);
 
         emit AddedToPool(msg.sender, sunEthAmt, earthEthAmt);
-
     }
+
+    /*//////////////////////////////////////////////////////////////
+                         GET FROM POOL FUNCTION
+    //////////////////////////////////////////////////////////////*/
 
     function getTokensFromPoolUsingLPTokens(uint256 amountOfLPTokensToBurn) public {
         // uint256 balance = i_lptoken.balanceOf(msg.sender);
@@ -124,8 +125,38 @@ contract LPContract {
         totalLPTokensMinted -= amountOfLPTokensToBurn;
 
         sunEth.mint(msg.sender, (s1));
-        earthEth.mint(msg.sender, (e1));        
+        earthEth.mint(msg.sender, (e1));
     }
+
+    /*//////////////////////////////////////////////////////////////
+                           EXCHANGE FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function exchangeSunEthForEarthEth(uint256 amountOfSunEth) public {  // implementing x y = k
+
+        uint256 earthEthAmt = getAmtAnotherTokenForAToken(amountOfSunEth, totalSunEthInPool, totalEarthEthInPool);
+
+        sunEth.transfer(address(this), amountOfSunEth);
+        totalSunEthInPool += amountOfSunEth;
+
+        earthEth.transfer(msg.sender, earthEthAmt);
+        totalEarthEthInPool -= earthEthAmt;
+    }
+
+    function exchangeEarthEthForSunEth(uint256 amountOfEarthEth) public {  // implementing x y = k
+
+        uint256 sunEthAmt = getAmtAnotherTokenForAToken(amountOfEarthEth, totalEarthEthInPool, totalSunEthInPool);
+
+        earthEth.transfer(address(this), amountOfEarthEth);
+        totalEarthEthInPool += amountOfEarthEth;
+
+        sunEth.transfer(msg.sender, sunEthAmt);
+        totalSunEthInPool -= sunEthAmt;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            HELPER FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     function getTheMaximumBasket(uint256 AmountOfSunEth, uint256 AmountOfEarthEth)
         public
@@ -185,8 +216,7 @@ contract LPContract {
     function getLPTokensAmtToMint(uint256 tokenGiven, uint256 totalAmtOfTokenGiven) public returns (uint256) {
         uint256 s = (tokenGiven * totalLPTokensMinted) / totalAmtOfTokenGiven;
         return s;
-
-    } 
+    }
 
     function mintLPToken(address user, uint256 amount) public {
         i_lptoken.mint(user, amount);
@@ -197,12 +227,10 @@ contract LPContract {
         // assuming Total LP tokens = Liquidity of pool
         // as they are directly proportional
         // reference video link in readmd
-        
+
         uint256 tokensToMint = sqrt(amountOfInitialEarthEthInPool * amountOfInitialSunEthInPool);
         totalLPTokensMinted += tokensToMint;
         i_lptoken.mint(address(this), tokensToMint);
-    
-    
     }
 
     function sqrt(uint256 x) public pure returns (uint256) {
@@ -216,10 +244,12 @@ contract LPContract {
         return y * 1e10;
     }
 
+    function getAmtAnotherTokenForAToken(uint256 tokenAmount, uint256 tokenTotalAmt, uint256 AnotherTokenTotalAmt ) public returns (uint256){
 
-    /*//////////////////////////////////////////////////////////////
-                               MODIFIERS
-    //////////////////////////////////////////////////////////////*/
+        uint AnotherTokenAmt = (tokenAmount * AnotherTokenTotalAmt)/(tokenTotalAmt + tokenAmount);
+        return AnotherTokenAmt;
+
+    } 
 
     /*//////////////////////////////////////////////////////////////
                             GETTER FUNCTIONS
