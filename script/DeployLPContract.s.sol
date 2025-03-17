@@ -36,6 +36,7 @@ contract DeployLPContract is Script {
 
         LPToken lpToken = LPToken(LPTokenAddress);
         lpToken.transferOwnership(address(lpContract));
+        lpContract.constructor2();
 
         vm.stopBroadcast();
         return (lpContract, helperConfigLPContract);

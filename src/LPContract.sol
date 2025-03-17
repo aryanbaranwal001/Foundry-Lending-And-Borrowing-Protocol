@@ -40,6 +40,11 @@ contract LPContract {
 
     uint256 public totalLPTokensMinted;
 
+        uint256 InitialTotalValueOfOneAssetInPoolInUsd;
+
+
+    bool tempVar = true; // a workaround
+
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -48,7 +53,7 @@ contract LPContract {
         address[] memory tokenAddresses,
         address[] memory tokenPriceFeedAddresses,
         address LPTokenAddress,
-        uint256 InitialTotalValueOfOneAssetInPoolInUsd
+        uint256 InitialTotalValueOfOneAssetInPoolInUsdInput
     ) {
         // if InitialTotalValueOfOneAssetInPoolInUsd is $1_000_000, then value of total amount of SunEth and EarthEth will be $1_000_000 each. Total value of pool will be $2_000_000
         if (tokenPriceFeedAddresses.length != tokenAddresses.length) {
@@ -64,6 +69,17 @@ contract LPContract {
         earthEth = EarthEth(tokenAddresses[1]);
         sunEthAggregator = SunEthAggregator(tokenPriceFeedAddresses[0]);
         earthEthAggregator = EarthEthAggregator(tokenPriceFeedAddresses[1]);
+        InitialTotalValueOfOneAssetInPoolInUsd = InitialTotalValueOfOneAssetInPoolInUsdInput;
+        
+
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                              CONSTRUCTOR 2
+    //////////////////////////////////////////////////////////////*/
+
+    function constructor2() public {
+        if (tempVar) {
 
         (, int256 rateSunEth,,,) = sunEthAggregator.latestRoundData();
         (, int256 rateEarthEth,,,) = earthEthAggregator.latestRoundData();
@@ -86,6 +102,8 @@ contract LPContract {
         // minting LP tokens to address(this) contract
 
         mintInitialLPToken(amountOfInitialSunEthInPool, amountOfInitialEarthEthInPool);
+        tempVar = false;
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
