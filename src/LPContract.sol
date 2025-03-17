@@ -38,6 +38,8 @@ contract LPContract {
     uint256 public totalSunEthInPool;
     uint256 public totalEarthEthInPool;
 
+    uint256 public totalLPTokensMinted;
+
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -80,10 +82,15 @@ contract LPContract {
 
         totalSunEthInPool += amountOfInitialSunEthInPool;
         totalEarthEthInPool += amountOfInitialEarthEthInPool;
+
+        // minting LP tokens to address(this) contract
+
+         mintInitialLPToken(amountOfInitialSunEthInPool, amountOfInitialEarthEthInPool);
+
     }
 
     /*//////////////////////////////////////////////////////////////
-                  ADD TO OR REMOVE FROM POOL FUNCTIONS
+                          ADD TO POOL FUNCTION
     //////////////////////////////////////////////////////////////*/
 
     function addToPool(uint256 AmountOfSunEth, uint256 AmountOfEarthEth) public {
@@ -93,13 +100,31 @@ contract LPContract {
         sunEth.transfer(address(this), (sunEthAmt));
         earthEth.transfer(address(this), (earthEthAmt));
 
+        uint256 s = getLPTokensAmtToMint(sunEthAmt, totalSunEthInPool);
+        
         totalSunEthInPool += sunEthAmt;
         totalEarthEthInPool += earthEthAmt;
 
+
+        mintLPToken(msg.sender, s);
+
         emit AddedToPool(msg.sender, sunEthAmt, earthEthAmt);
 
-        // totalSunEthInPool += AmountOfSunEth;
-        // totalEarthEthInPool += ;
+    }
+
+    function getTokensFromPoolUsingLPTokens(uint256 amountOfLPTokensToBurn) public {
+        // uint256 balance = i_lptoken.balanceOf(msg.sender);
+        i_lptoken.burn(msg.sender, amountOfLPTokensToBurn);
+
+        uint256 s1 = totalSunEthInPool * amountOfLPTokensToBurn / totalLPTokensMinted;
+        uint256 e1 = totalEarthEthInPool * amountOfLPTokensToBurn / totalLPTokensMinted;
+
+        totalSunEthInPool -= s1;
+        totalEarthEthInPool -= e1;
+        totalLPTokensMinted -= amountOfLPTokensToBurn;
+
+        sunEth.mint(msg.sender, (s1));
+        earthEth.mint(msg.sender, (e1));        
     }
 
     function getTheMaximumBasket(uint256 AmountOfSunEth, uint256 AmountOfEarthEth)
@@ -123,9 +148,6 @@ contract LPContract {
             return (s2, e2);
         }
     }
-
-    // get the price of sunEth and earthEth
-    // get the total amount
 
     function getBasket(uint256 s, uint256 e, uint256 ItotalSunEthInPool, uint256 ItotalEarthEthInPool)
         public
@@ -159,6 +181,41 @@ contract LPContract {
         (uint256 e1, uint256 s1) = getBasket(e, s, ItotalEarthEthInPool, ItotalSunEthInPool);
         return (s1, e1);
     }
+
+    function getLPTokensAmtToMint(uint256 tokenGiven, uint256 totalAmtOfTokenGiven) public returns (uint256) {
+        uint256 s = (tokenGiven * totalLPTokensMinted) / totalAmtOfTokenGiven;
+        return s;
+
+    } 
+
+    function mintLPToken(address user, uint256 amount) public {
+        i_lptoken.mint(user, amount);
+    }
+
+    function mintInitialLPToken(uint256 amountOfInitialSunEthInPool, uint256 amountOfInitialEarthEthInPool) public {
+        // assuming Liquidity of pool = sqrt(totalSunEthInPool * totalEarthEthInPool)
+        // assuming Total LP tokens = Liquidity of pool
+        // as they are directly proportional
+        // reference video link in readmd
+        
+        uint256 tokensToMint = sqrt(amountOfInitialEarthEthInPool * amountOfInitialSunEthInPool);
+        totalLPTokensMinted += tokensToMint;
+        i_lptoken.mint(address(this), tokensToMint);
+    
+    
+    }
+
+    function sqrt(uint256 x) public pure returns (uint256) {
+        if (x == 0) return 0;
+        uint256 z = (x + 1) / 2;
+        uint256 y = x;
+        while (z < y) {
+            y = z;
+            z = (x / z + z) / 2;
+        }
+        return y * 1e10;
+    }
+
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIERS
