@@ -114,8 +114,7 @@ contract LPContract {
     //////////////////////////////////////////////////////////////*/
 
     function getTokensFromPoolUsingLPTokens(uint256 amountOfLPTokensToBurn) public {
-        // uint256 balance = i_lptoken.balanceOf(msg.sender);
-        i_lptoken.burn(msg.sender, amountOfLPTokensToBurn);
+        i_lptoken.burn(msg.sender, amountOfLPTokensToBurn); // it will revert as only owner can call this function of LPToken
 
         uint256 s1 = totalSunEthInPool * amountOfLPTokensToBurn / totalLPTokensMinted;
         uint256 e1 = totalEarthEthInPool * amountOfLPTokensToBurn / totalLPTokensMinted;
@@ -132,8 +131,8 @@ contract LPContract {
                            EXCHANGE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function exchangeSunEthForEarthEth(uint256 amountOfSunEth) public {  // implementing x y = k
-
+    function exchangeSunEthForEarthEth(uint256 amountOfSunEth) public {
+        // implementing x y = k
         uint256 earthEthAmt = getAmtAnotherTokenForAToken(amountOfSunEth, totalSunEthInPool, totalEarthEthInPool);
 
         sunEth.transfer(address(this), amountOfSunEth);
@@ -143,8 +142,8 @@ contract LPContract {
         totalEarthEthInPool -= earthEthAmt;
     }
 
-    function exchangeEarthEthForSunEth(uint256 amountOfEarthEth) public {  // implementing x y = k
-
+    function exchangeEarthEthForSunEth(uint256 amountOfEarthEth) public {
+        // implementing x y = k
         uint256 sunEthAmt = getAmtAnotherTokenForAToken(amountOfEarthEth, totalEarthEthInPool, totalSunEthInPool);
 
         earthEth.transfer(address(this), amountOfEarthEth);
@@ -152,6 +151,32 @@ contract LPContract {
 
         sunEth.transfer(msg.sender, sunEthAmt);
         totalSunEthInPool -= sunEthAmt;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                     CALCULATE ARBITRAGE FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function getArbitrageForExchangingSunEthForEarthEth(uint256 amountOfSunEth) public  returns (uint256) {
+        (, int256 rateSunEth,,,) = sunEthAggregator.latestRoundData();
+        (, int256 rateEarthEth,,,) = earthEthAggregator.latestRoundData();
+
+        uint256 earthEthAmt = getAmtAnotherTokenForAToken(amountOfSunEth, totalSunEthInPool, totalEarthEthInPool);
+
+        uint256 amountInDollars =
+            ((earthEthAmt * uint256(rateEarthEth) * 1e10 - (amountOfSunEth * uint256(rateSunEth) * 1e10)) / 1e36);
+        return amountInDollars;
+    }
+
+    function getArbitrageForExchangingEarthEthForSunEth(uint256 amountOfEarthEth) public  returns (uint256) {
+        (, int256 rateSunEth,,,) = sunEthAggregator.latestRoundData();
+        (, int256 rateEarthEth,,,) = earthEthAggregator.latestRoundData();
+
+        uint256 sunEthAmt = getAmtAnotherTokenForAToken(amountOfEarthEth, totalEarthEthInPool, totalSunEthInPool);
+
+        uint256 amountInDollars =
+            uint256(((sunEthAmt * uint256(rateSunEth)) * 1e10 - (amountOfEarthEth * uint256(rateEarthEth)) * 1e10) / 1e36);
+        return amountInDollars;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -244,12 +269,13 @@ contract LPContract {
         return y * 1e10;
     }
 
-    function getAmtAnotherTokenForAToken(uint256 tokenAmount, uint256 tokenTotalAmt, uint256 AnotherTokenTotalAmt ) public returns (uint256){
-
-        uint AnotherTokenAmt = (tokenAmount * AnotherTokenTotalAmt)/(tokenTotalAmt + tokenAmount);
+    function getAmtAnotherTokenForAToken(uint256 tokenAmount, uint256 tokenTotalAmt, uint256 AnotherTokenTotalAmt)
+        public
+        returns (uint256)
+    {
+        uint256 AnotherTokenAmt = (tokenAmount * AnotherTokenTotalAmt) / (tokenTotalAmt + tokenAmount); // reference from the video link in readme
         return AnotherTokenAmt;
-
-    } 
+    }
 
     /*//////////////////////////////////////////////////////////////
                             GETTER FUNCTIONS
