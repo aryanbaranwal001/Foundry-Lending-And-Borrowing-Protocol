@@ -2,16 +2,16 @@
 pragma solidity ^0.8.0;
 
 import {Script, console} from "lib/forge-std/src/Script.sol";
-import {DSCT} from "src/DSCT.sol";
-import {SunEth} from "src/DSCTEngineTokens/SunEth.sol";
-import {EarthEth} from "src/DSCTEngineTokens/EarthEth.sol";
-import {EarthEthAggregator} from "src/DSCTEngineTokenAggregator/EarthEthAggregator.sol";
-import {SunEthAggregator} from "src/DSCTEngineTokenAggregator/SunEthAggregator.sol";
+import {LPToken} from "src/LPToken.sol";
+import {SunEth} from "src/LPExternalTokens/SunEth.sol";
+import {EarthEth} from "src/LPExternalTokens/EarthEth.sol";
+import {EarthEthAggregator} from "src/LPExternalAggregators/EarthEthAggregator.sol";
+import {SunEthAggregator} from "src/LPExternalAggregators/SunEthAggregator.sol";
 
 // aggregator = contract
 
-contract HelperConfigDSCTEngine is Script {
-    DSCT dsct;
+contract HelperConfigLPContract is Script {
+    LPToken lpToken;
     SunEth sunEth;
     EarthEth earthEth;
     SunEthAggregator sunEthAggregator;
@@ -25,7 +25,7 @@ contract HelperConfigDSCTEngine is Script {
     address public EarthEthAddress;
     address public SunEthPriceFeedAddress;
     address public EarthEthPriceFeedAddress;
-    address public DSCTAddress;
+    address public LPTokenAddress;
 
     function DeployTokensAndAggregators()
         public
@@ -34,11 +34,11 @@ contract HelperConfigDSCTEngine is Script {
             address, // EarthEthAddress
             address, // SunEthPriceFeedAddress
             address, // EarthEthPriceFeedAddress
-            address // DSCTAddress
+            address // LPTokenAddress
         )
     {
         vm.startBroadcast();
-        dsct = new DSCT();
+        lpToken = new LPToken();
         sunEth = new SunEth();
         earthEth = new EarthEth();
         sunEthAggregator = new SunEthAggregator(DECIMALS, EARTH_ETH_I_ANSWER);
@@ -49,9 +49,9 @@ contract HelperConfigDSCTEngine is Script {
         EarthEthAddress = address(earthEth);
         SunEthPriceFeedAddress = address(sunEthAggregator);
         EarthEthPriceFeedAddress = address(earthEthAggregator);
-        DSCTAddress = address(dsct);
+        LPTokenAddress = address(lpToken);
 
-        return (SunEthAddress, EarthEthAddress, SunEthPriceFeedAddress, EarthEthPriceFeedAddress, DSCTAddress);
+        return (SunEthAddress, EarthEthAddress, SunEthPriceFeedAddress, EarthEthPriceFeedAddress, LPTokenAddress);
     }
 
     function getNetworkConfigs()
@@ -61,15 +61,15 @@ contract HelperConfigDSCTEngine is Script {
             address, // EarthEthAddress
             address, // SunEthPriceFeedAddress
             address, // EarthEthPriceFeedAddress
-            address // DSCTAddress
+            address // LPTokenAddress
         )
     {
         if (
             SunEthAddress == address(0) && EarthEthAddress == address(0) && SunEthPriceFeedAddress == address(0)
-                && EarthEthPriceFeedAddress == address(0) && DSCTAddress == address(0)
+                && EarthEthPriceFeedAddress == address(0) && LPTokenAddress == address(0)
         ) {
             return DeployTokensAndAggregators();
         }
-        return (SunEthAddress, EarthEthAddress, SunEthPriceFeedAddress, EarthEthPriceFeedAddress, DSCTAddress);
+        return (SunEthAddress, EarthEthAddress, SunEthPriceFeedAddress, EarthEthPriceFeedAddress, LPTokenAddress);
     }
 }

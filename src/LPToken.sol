@@ -5,7 +5,7 @@ import {Ownable} from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import {ERC20Burnable, ERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 // ERC20 Burnable is both ERC20 and Context
 
-contract DSCT is ERC20Burnable, Ownable {
+contract LPToken is ERC20Burnable, Ownable {
     constructor() Ownable(msg.sender) ERC20("StableCoinToken", "SCT") {}
 
     function mint(address account, uint256 amount) public onlyOwner {
