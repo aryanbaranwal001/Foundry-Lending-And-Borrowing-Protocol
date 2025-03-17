@@ -28,7 +28,9 @@ contract DeployLPContract is Script {
         tokenPriceFeedAddresses = [SunEthPriceFeedAddress, EarthEthPriceFeedAddress];
 
         vm.startBroadcast();
-        LPContract lpContract = new LPContract(tokenAddresses, tokenPriceFeedAddresses, LPTokenAddress, InitialTotalValueOfOneAssetInPoolInUsd);
+        LPContract lpContract = new LPContract(
+            tokenAddresses, tokenPriceFeedAddresses, LPTokenAddress, InitialTotalValueOfOneAssetInPoolInUsd
+        );
 
         // transfers the ownership of LPToken to LPContract
 
