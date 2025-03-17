@@ -76,6 +76,6 @@ contract LPContractTest is Test {
             earthEth.mint(USER, 10 ether);
         vm.stopPrank();
 
-        lPContract.addToPool(10 ether, 10 ether);
+        lPContract.addToPool(10 ether, 8 ether);
     }
 }

@@ -5,13 +5,13 @@ import {console} from "lib/forge-std/src/Script.sol";
 
 import {IERC20} from "lib/forge-std/src/interfaces/IERC20.sol";
 import {LPToken} from "src/LPToken.sol";
-
+import {ReentrancyGuard} from "lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 import {SunEth} from "src/LPExternalTokens/SunEth.sol";
 import {EarthEth} from "src/LPExternalTokens/EarthEth.sol";
 import {SunEthAggregator} from "src/LPExternalAggregators/SunEthAggregator.sol";
 import {EarthEthAggregator} from "src/LPExternalAggregators/EarthEthAggregator.sol";
 
-contract LPContract {
+contract LPContract is ReentrancyGuard {
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -207,7 +207,6 @@ contract LPContract {
 
     function getTheMaximumBasket(uint256 AmountOfSunEth, uint256 AmountOfEarthEth)
         public
-        view
         returns (uint256, uint256)
     {
         (uint256 s1, uint256 e1) = getBasket(AmountOfSunEth, AmountOfEarthEth, totalSunEthInPool, totalEarthEthInPool);
@@ -229,7 +228,7 @@ contract LPContract {
 
     function getBasket(uint256 s, uint256 e, uint256 ItotalSunEthInPool, uint256 ItotalEarthEthInPool)
         public
-        view
+        nonReentrant
         returns (uint256, uint256)
     {
         int256 x;
@@ -237,6 +236,10 @@ contract LPContract {
         uint256 earth = ItotalEarthEthInPool;
         // (s-x)/e = sun/earth
         // on solving we get (s*earth - sun*e)/earth = x
+        console.log("s, e", s, e);
+        console.log("sun, earth", ItotalSunEthInPool, ItotalEarthEthInPool);
+        console.log("From here I should begin");
+        
         x = int256((s * earth - sun * e) / earth);
 
         if (x < 0) {
@@ -253,7 +256,6 @@ contract LPContract {
 
     function getBasketWithReverse(uint256 s, uint256 e, uint256 ItotalSunEthInPool, uint256 ItotalEarthEthInPool)
         public
-        view
         returns (uint256, uint256)
     {
         (uint256 e1, uint256 s1) = getBasket(e, s, ItotalEarthEthInPool, ItotalSunEthInPool);
