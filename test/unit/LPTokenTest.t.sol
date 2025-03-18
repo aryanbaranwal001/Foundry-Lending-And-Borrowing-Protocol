@@ -1,45 +1,60 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.0;
 
 import {Test, console} from "lib/forge-std/src/Test.sol";
-import {LPToken} from "src/LPToken.sol";
 import {StdCheats} from "lib/forge-std/src/StdCheats.sol";
-import {DeployLPContract} from "script/DeployLPContract.s.sol";
-import {HelperConfigLPContract} from "script/HelperConfigLPContract.s.sol";
-import {LPContract} from "src/LPContract.sol";
+import {DeployBorrowingContract} from "script/DeployBorrowingContract.s.sol";
+import {HelperConfigBorrowingContract} from "script/HelperConfigBorrowingContract.s.sol";
+import {Bc} from "src/Bc.sol";
 
-contract LPTokenTEST is Test {
-    LPToken lpToken;
+import {BcToken} from "src/BcToken.sol";
+import {Weth} from "src/BorrowingTokens/Weth.sol";
+import {Usdc} from "src/BorrowingTokens/Usdc.sol";
+import {WethAggr} from "src/BorrowingAggregators/WethAggr.sol";
+import {UsdcAggr} from "src/BorrowingAggregators/UsdcAggr.sol";
+
+
+contract BcTest is Test {
+    BcToken bcToken;
+    Weth weth;
+    Usdc usdc;
+    WethAggr wethAggr;
+    UsdcAggr usdcAggr;
+
+    address public wethAddress;
+    address public usdcAddress;
+    address public wethAggrAddress;
+    address public usdcAggrAddress;
+    address public bcTokenAddress;
+
     uint256 public constant STARTING_BALANCE = 1000 ether;
     address public USER = makeAddr("USER");
     address public immutable i_initial_owner = msg.sender;
 
-    address SunEthAddress;
-    address EarthEthAddress;
-    address SunEthPriceFeedAddress;
-    address EarthEthPriceFeedAddress;
-    address LPTokenAddress;
-
-    LPContract lPContract;
-    HelperConfigLPContract helperConfigLPContract;
+    Bc bc;
+    HelperConfigBorrowingContract helperConfigBorrowingContract;
 
     function setUp() public {
-        DeployLPContract deployLPContract = new DeployLPContract();
-        (lPContract, helperConfigLPContract) = deployLPContract.run();
+        DeployBorrowingContract deployBorrowingContract = new DeployBorrowingContract();
+        (bc, helperConfigBorrowingContract) = deployBorrowingContract.run();
 
-        (SunEthAddress, EarthEthAddress, SunEthPriceFeedAddress, EarthEthPriceFeedAddress, LPTokenAddress) =
-            helperConfigLPContract.getNetworkConfigs();
+        (wethAddress, usdcAddress, wethAggrAddress, usdcAggrAddress, bcTokenAddress) =
+            helperConfigBorrowingContract.getNetworkConfigs();
 
-        lpToken = LPToken(LPTokenAddress);
+        bcTokenAddress = address(bcToken);
+        wethAddress = address(weth);
+        usdcAddress = address(usdc);
+        wethAggrAddress = address(wethAggr);
+        usdcAggrAddress = address(usdcAggr);
+
         vm.deal(USER, 100 ether);
     }
 
-    function testMintAndBalanceForNotOwner() public {
+    // function testMintAndBalanceForNotOwner() public {
         // Few Console.logs for clarity
         // console.log("msg.sender", LPToken.getOwner());
         // console.log("msg.sender", msg.sender);
         // console.log("i_initial_owner", i_initial_owner);
         // console.log("Address(this)", address(this));
-    }
+    // }
 }

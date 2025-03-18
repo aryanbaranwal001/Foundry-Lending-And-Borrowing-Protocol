@@ -4,14 +4,14 @@ pragma solidity ^0.8.0;
 import {console} from "lib/forge-std/src/Script.sol";
 
 import {IERC20} from "lib/forge-std/src/interfaces/IERC20.sol";
-import {LPToken} from "src/LPToken.sol";
 import {ReentrancyGuard} from "lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
-import {SunEth} from "src/LPExternalTokens/SunEth.sol";
-import {EarthEth} from "src/LPExternalTokens/EarthEth.sol";
-import {SunEthAggregator} from "src/LPExternalAggregators/SunEthAggregator.sol";
-import {EarthEthAggregator} from "src/LPExternalAggregators/EarthEthAggregator.sol";
+import {BcToken} from "src/BcToken.sol";
+import {Weth} from "src/BorrowingTokens/Weth.sol";
+import {Usdc} from "src/BorrowingTokens/Usdc.sol";
+import {WethAggr} from "src/BorrowingAggregators/WethAggr.sol";
+import {UsdcAggr} from "src/BorrowingAggregators/UsdcAggr.sol";
 
-contract LPContract is ReentrancyGuard {
+contract Bc is ReentrancyGuard {
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -20,16 +20,16 @@ contract LPContract is ReentrancyGuard {
     error LPContract__TransferFailed();
     error LPContract__TokenNotAllowed(address tokenAddress);
     error LPContract__NeedsMoreThanZero();
-    error LPContract__OneTokenCannotBeZero(uint256 sunEthAmount, uint256 earthEthAmount);
+    error LPContract__OneTokenCannotBeZero(uint256 wethAmount, uint256 usdcAmount);
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event AddedToPool(address user, uint256 sunEthAmount, uint256 earthEthAmount);
-    event BasketChosenChoices(uint256 sunEthAmount, uint256 earthEthAmount);
-    event BasketChosenFinals1e1(uint256 sunEthAmount, uint256 earthEthAmount);
-    event BasketChosenFinals2e2(uint256 sunEthAmount, uint256 earthEthAmount);
+    event AddedToPool(address user, uint256 wethAmount, uint256 usdcAmount);
+    event BasketChosenChoices(uint256 wethAmount, uint256 usdcAmount);
+    event BasketChosenFinals1e1(uint256 wethAmount, uint256 usdcAmount);
+    event BasketChosenFinals2e2(uint256 wethAmount, uint256 usdcAmount);
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -39,14 +39,15 @@ contract LPContract is ReentrancyGuard {
         s_addressToTotalAmounOfParticularToken;
     mapping(address tokenAddress => address tokenPriceFeedAddress) public s_tokenAddressToPriceFeedAddress;
 
-    SunEth sunEth;
-    EarthEth earthEth;
-    SunEthAggregator sunEthAggregator;
-    EarthEthAggregator earthEthAggregator;
-    LPToken public immutable i_lptoken;
+    Weth weth;
+    Usdc usdc;
+    WethAggr wethAggr;
+    UsdcAggr usdcAggr;
 
-    uint256 public totalSunEthInPool;
-    uint256 public totalEarthEthInPool;
+    BcToken public immutable i_lptoken;
+
+    uint256 public totalwethInPool;
+    uint256 public totalusdcInPool;
     uint256 public totalLPTokensMinted;
 
     uint256 InitialTotalValueOfOneAssetInPoolInUsd;
@@ -62,20 +63,20 @@ contract LPContract is ReentrancyGuard {
         address LPTokenAddress,
         uint256 InitialTotalValueOfOneAssetInPoolInUsdInput
     ) {
-        // if InitialTotalValueOfOneAssetInPoolInUsd is $1_000_000, then value of total amount of SunEth and EarthEth will be $1_000_000 each. Total value of pool will be $2_000_000
+        // if InitialTotalValueOfOneAssetInPoolInUsd is $1_000_000, then value of total amount of weth and usdc will be $1_000_000 each. Total value of pool will be $2_000_000
         if (tokenPriceFeedAddresses.length != tokenAddresses.length) {
             revert LPContract__tokenPriceFeedAddressesAndTokenAddressesLengthNotSame();
         }
-        i_lptoken = LPToken(LPTokenAddress);
+        i_lptoken = BcToken(LPTokenAddress);
 
         for (uint256 i = 0; i < tokenPriceFeedAddresses.length; i++) {
             s_tokenAddressToPriceFeedAddress[tokenAddresses[i]] = tokenPriceFeedAddresses[i];
         }
 
-        sunEth = SunEth(tokenAddresses[0]);
-        earthEth = EarthEth(tokenAddresses[1]);
-        sunEthAggregator = SunEthAggregator(tokenPriceFeedAddresses[0]);
-        earthEthAggregator = EarthEthAggregator(tokenPriceFeedAddresses[1]);
+        weth = Weth(tokenAddresses[0]);
+        usdc = Usdc(tokenAddresses[1]);
+        wethAggr = WethAggr(tokenPriceFeedAddresses[0]);
+        usdcAggr = UsdcAggr(tokenPriceFeedAddresses[1]);
         InitialTotalValueOfOneAssetInPoolInUsd = InitialTotalValueOfOneAssetInPoolInUsdInput;
     }
 
@@ -85,8 +86,8 @@ contract LPContract is ReentrancyGuard {
 
     function constructor2() public returns (bool) {
         if (tempVar) {
-            (, int256 rateSunEth,,,) = sunEthAggregator.latestRoundData();
-            (, int256 rateEarthEth,,,) = earthEthAggregator.latestRoundData();
+            (, int256 rateweth,,,) = wethAggr.latestRoundData();
+            (, int256 rateusdc,,,) = usdcAggr.latestRoundData();
 
             // 1e6 * 1e18 = x * rate * 1e10 / 1e18
             // 1e6 is amount in dollars
@@ -94,19 +95,18 @@ contract LPContract is ReentrancyGuard {
             // rate is rate of token in dollars with 8 decimals (given in helper config)
             // rest number are for solidity math/precision control
 
-            uint256 amountOfInitialSunEthInPool = (InitialTotalValueOfOneAssetInPoolInUsd * 1e26) / uint256(rateSunEth);
-            uint256 amountOfInitialEarthEthInPool =
-                (InitialTotalValueOfOneAssetInPoolInUsd * 1e26) / uint256(rateEarthEth);
+            uint256 amountOfInitialwethInPool = (InitialTotalValueOfOneAssetInPoolInUsd * 1e26) / uint256(rateweth);
+            uint256 amountOfInitialusdcInPool = (InitialTotalValueOfOneAssetInPoolInUsd * 1e26) / uint256(rateusdc);
 
-            sunEth.mint(address(this), (amountOfInitialSunEthInPool));
-            earthEth.mint(address(this), (amountOfInitialEarthEthInPool));
+            weth.mint(address(this), (amountOfInitialwethInPool));
+            usdc.mint(address(this), (amountOfInitialusdcInPool));
 
-            totalSunEthInPool += amountOfInitialSunEthInPool;
-            totalEarthEthInPool += amountOfInitialEarthEthInPool;
+            totalwethInPool += amountOfInitialwethInPool;
+            totalusdcInPool += amountOfInitialusdcInPool;
 
             // minting LP tokens to address(this) contract
 
-            mintInitialLPToken(amountOfInitialSunEthInPool, amountOfInitialEarthEthInPool);
+            mintInitialLPToken(amountOfInitialwethInPool, amountOfInitialusdcInPool);
             tempVar = false;
             return false;
         }
@@ -117,25 +117,25 @@ contract LPContract is ReentrancyGuard {
                           ADD TO POOL FUNCTION
     //////////////////////////////////////////////////////////////*/
 
-    function addToPool(uint256 AmountOfSunEth, uint256 AmountOfEarthEth) public {
-        if (AmountOfSunEth == 0 || AmountOfEarthEth == 0) {
-            revert LPContract__OneTokenCannotBeZero(AmountOfSunEth, AmountOfEarthEth);
+    function addToPool(uint256 AmountOfweth, uint256 AmountOfusdc) public {
+        if (AmountOfweth == 0 || AmountOfusdc == 0) {
+            revert LPContract__OneTokenCannotBeZero(AmountOfweth, AmountOfusdc);
         }
         // This function will select the largest basket of token to be added to pool
 
-        (uint256 sunEthAmt, uint256 earthEthAmt) = getTheMaximumBasket(AmountOfSunEth, AmountOfEarthEth);
+        (uint256 wethAmt, uint256 usdcAmt) = getTheMaximumBasket(AmountOfweth, AmountOfusdc);
 
-        sunEth.transferFromOwner(msg.sender, address(this), (sunEthAmt));
-        earthEth.transferFromOwner(msg.sender, address(this), (earthEthAmt));
+        weth.transferFromOwner(msg.sender, address(this), (wethAmt));
+        usdc.transferFromOwner(msg.sender, address(this), (usdcAmt));
 
-        uint256 s = getLPTokensAmtToMint(sunEthAmt, totalSunEthInPool);
+        uint256 s = getLPTokensAmtToMint(wethAmt, totalwethInPool);
 
-        totalSunEthInPool += sunEthAmt;
-        totalEarthEthInPool += earthEthAmt;
+        totalwethInPool += wethAmt;
+        totalusdcInPool += usdcAmt;
 
         mintLPToken(msg.sender, s);
 
-        emit AddedToPool(msg.sender, sunEthAmt, earthEthAmt);
+        emit AddedToPool(msg.sender, wethAmt, usdcAmt);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -143,69 +143,68 @@ contract LPContract is ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     function getTokensFromPoolUsingLPTokens(uint256 amountOfLPTokensToBurn) public {
-        i_lptoken.burn(msg.sender, amountOfLPTokensToBurn); // it will revert as only owner can call this function of LPToken
+        i_lptoken.burn(msg.sender, amountOfLPTokensToBurn); // it will revert as only owner can call this function of BcToken
 
-        uint256 s1 = totalSunEthInPool * amountOfLPTokensToBurn / totalLPTokensMinted;
-        uint256 e1 = totalEarthEthInPool * amountOfLPTokensToBurn / totalLPTokensMinted;
+        uint256 s1 = totalwethInPool * amountOfLPTokensToBurn / totalLPTokensMinted;
+        uint256 e1 = totalusdcInPool * amountOfLPTokensToBurn / totalLPTokensMinted;
 
-        totalSunEthInPool -= s1;
-        totalEarthEthInPool -= e1;
+        totalwethInPool -= s1;
+        totalusdcInPool -= e1;
         totalLPTokensMinted -= amountOfLPTokensToBurn;
 
-        sunEth.mint(msg.sender, (s1));
-        earthEth.mint(msg.sender, (e1));
+        weth.mint(msg.sender, (s1));
+        usdc.mint(msg.sender, (e1));
     }
 
     /*//////////////////////////////////////////////////////////////
                            EXCHANGE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function exchangeSunEthForEarthEth(uint256 amountOfSunEth) public {
+    function exchangewethForusdc(uint256 amountOfweth) public {
         // implementing x y = k
-        uint256 earthEthAmt = getAmtAnotherTokenForAToken(amountOfSunEth, totalSunEthInPool, totalEarthEthInPool);
+        uint256 usdcAmt = getAmtAnotherTokenForAToken(amountOfweth, totalwethInPool, totalusdcInPool);
 
-        sunEth.transferFromOwner(msg.sender, address(this), amountOfSunEth);
-        totalSunEthInPool += amountOfSunEth;
+        weth.transferFromOwner(msg.sender, address(this), amountOfweth);
+        totalwethInPool += amountOfweth;
 
-        earthEth.transferFromOwner(address(this), msg.sender, earthEthAmt);
-        totalEarthEthInPool -= earthEthAmt;
+        usdc.transferFromOwner(address(this), msg.sender, usdcAmt);
+        totalusdcInPool -= usdcAmt;
     }
 
-    function exchangeEarthEthForSunEth(uint256 amountOfEarthEth) public {
+    function exchangeusdcForweth(uint256 amountOfusdc) public {
         // implementing x y = k
-        uint256 sunEthAmt = getAmtAnotherTokenForAToken(amountOfEarthEth, totalEarthEthInPool, totalSunEthInPool);
+        uint256 wethAmt = getAmtAnotherTokenForAToken(amountOfusdc, totalusdcInPool, totalwethInPool);
 
-        earthEth.transferFromOwner(msg.sender, address(this), amountOfEarthEth);
-        totalEarthEthInPool += amountOfEarthEth;
+        usdc.transferFromOwner(msg.sender, address(this), amountOfusdc);
+        totalusdcInPool += amountOfusdc;
 
-        sunEth.transferFromOwner(address(this), msg.sender, sunEthAmt);
-        totalSunEthInPool -= sunEthAmt;
+        weth.transferFromOwner(address(this), msg.sender, wethAmt);
+        totalwethInPool -= wethAmt;
     }
 
     /*//////////////////////////////////////////////////////////////
                      CALCULATE ARBITRAGE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function getArbitrageForExchangingSunEthForEarthEth(uint256 amountOfSunEth) public returns (uint256) {
-        (, int256 rateSunEth,,,) = sunEthAggregator.latestRoundData();
-        (, int256 rateEarthEth,,,) = earthEthAggregator.latestRoundData();
+    function getArbitrageForExchangingwethForusdc(uint256 amountOfweth) public returns (uint256) {
+        (, int256 rateweth,,,) = wethAggr.latestRoundData();
+        (, int256 rateusdc,,,) = usdcAggr.latestRoundData();
 
-        uint256 earthEthAmt = getAmtAnotherTokenForAToken(amountOfSunEth, totalSunEthInPool, totalEarthEthInPool);
+        uint256 usdcAmt = getAmtAnotherTokenForAToken(amountOfweth, totalwethInPool, totalusdcInPool);
 
         uint256 amountInDollars =
-            ((earthEthAmt * uint256(rateEarthEth) * 1e10 - (amountOfSunEth * uint256(rateSunEth) * 1e10)) / 1e36);
+            ((usdcAmt * uint256(rateusdc) * 1e10 - (amountOfweth * uint256(rateweth) * 1e10)) / 1e36);
         return amountInDollars;
     }
 
-    function getArbitrageForExchangingEarthEthForSunEth(uint256 amountOfEarthEth) public returns (uint256) {
-        (, int256 rateSunEth,,,) = sunEthAggregator.latestRoundData();
-        (, int256 rateEarthEth,,,) = earthEthAggregator.latestRoundData();
+    function getArbitrageForExchangingusdcForweth(uint256 amountOfusdc) public returns (uint256) {
+        (, int256 rateweth,,,) = wethAggr.latestRoundData();
+        (, int256 rateusdc,,,) = usdcAggr.latestRoundData();
 
-        uint256 sunEthAmt = getAmtAnotherTokenForAToken(amountOfEarthEth, totalEarthEthInPool, totalSunEthInPool);
+        uint256 wethAmt = getAmtAnotherTokenForAToken(amountOfusdc, totalusdcInPool, totalwethInPool);
 
-        uint256 amountInDollars = uint256(
-            ((sunEthAmt * uint256(rateSunEth)) * 1e10 - (amountOfEarthEth * uint256(rateEarthEth)) * 1e10) / 1e36
-        );
+        uint256 amountInDollars =
+            uint256(((wethAmt * uint256(rateweth)) * 1e10 - (amountOfusdc * uint256(rateusdc)) * 1e10) / 1e36);
         return amountInDollars;
     }
 
@@ -213,17 +212,16 @@ contract LPContract is ReentrancyGuard {
                             HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function getTheMaximumBasket(uint256 AmountOfSunEth, uint256 AmountOfEarthEth) public returns (uint256, uint256) {
-        if (AmountOfSunEth == 0 || AmountOfEarthEth == 0) {
-            revert LPContract__OneTokenCannotBeZero(AmountOfSunEth, AmountOfEarthEth);
+    function getTheMaximumBasket(uint256 AmountOfweth, uint256 AmountOfusdc) public returns (uint256, uint256) {
+        if (AmountOfweth == 0 || AmountOfusdc == 0) {
+            revert LPContract__OneTokenCannotBeZero(AmountOfweth, AmountOfusdc);
         }
 
-        (uint256 s1, uint256 e1) = getBasket(AmountOfSunEth, AmountOfEarthEth, totalSunEthInPool, totalEarthEthInPool);
-        (uint256 s2, uint256 e2) =
-            getBasketWithReverse(AmountOfSunEth, AmountOfEarthEth, totalSunEthInPool, totalEarthEthInPool);
+        (uint256 s1, uint256 e1) = getBasket(AmountOfweth, AmountOfusdc, totalwethInPool, totalusdcInPool);
+        (uint256 s2, uint256 e2) = getBasketWithReverse(AmountOfweth, AmountOfusdc, totalwethInPool, totalusdcInPool);
 
-        (, int256 SunRateEth,,,) = sunEthAggregator.latestRoundData();
-        (, int256 EarthRateEth,,,) = earthEthAggregator.latestRoundData();
+        (, int256 SunRateEth,,,) = wethAggr.latestRoundData();
+        (, int256 EarthRateEth,,,) = usdcAggr.latestRoundData();
 
         emit BasketChosenChoices(s1, e1);
         emit BasketChosenChoices(s2, e2);
@@ -246,15 +244,15 @@ contract LPContract is ReentrancyGuard {
         }
     }
 
-    function getBasket(uint256 s, uint256 e, uint256 ItotalSunEthInPool, uint256 ItotalEarthEthInPool)
+    function getBasket(uint256 s, uint256 e, uint256 ItotalwethInPool, uint256 ItotalusdcInPool)
         public
         nonReentrant
         returns (uint256, uint256)
     {
         int256 x;
         int256 y;
-        uint256 sun = ItotalSunEthInPool;
-        uint256 earth = ItotalEarthEthInPool;
+        uint256 sun = ItotalwethInPool;
+        uint256 earth = ItotalusdcInPool;
         int256 z;
         // (s-z)/e = sun/earth
         // on solving we get (s*earth - sun*e)/earth = z
@@ -274,11 +272,11 @@ contract LPContract is ReentrancyGuard {
         return (s1, e);
     }
 
-    function getBasketWithReverse(uint256 s, uint256 e, uint256 ItotalSunEthInPool, uint256 ItotalEarthEthInPool)
+    function getBasketWithReverse(uint256 s, uint256 e, uint256 ItotalwethInPool, uint256 ItotalusdcInPool)
         public
         returns (uint256, uint256)
     {
-        (uint256 e1, uint256 s1) = getBasket(e, s, ItotalEarthEthInPool, ItotalSunEthInPool);
+        (uint256 e1, uint256 s1) = getBasket(e, s, ItotalusdcInPool, ItotalwethInPool);
         return (s1, e1);
     }
 
@@ -291,13 +289,13 @@ contract LPContract is ReentrancyGuard {
         i_lptoken.mint(user, amount);
     }
 
-    function mintInitialLPToken(uint256 amountOfInitialSunEthInPool, uint256 amountOfInitialEarthEthInPool) public {
-        // assuming Liquidity of pool = sqrt(totalSunEthInPool * totalEarthEthInPool)
+    function mintInitialLPToken(uint256 amountOfInitialwethInPool, uint256 amountOfInitialusdcInPool) public {
+        // assuming Liquidity of pool = sqrt(totalwethInPool * totalusdcInPool)
         // assuming Total LP tokens = Liquidity of pool
         // as they are directly proportional
         // reference video link in readmd
 
-        uint256 tokensToMint = sqrt(amountOfInitialEarthEthInPool * amountOfInitialSunEthInPool);
+        uint256 tokensToMint = sqrt(amountOfInitialusdcInPool * amountOfInitialwethInPool);
         totalLPTokensMinted += tokensToMint;
         i_lptoken.mint(address(this), tokensToMint);
     }
@@ -329,11 +327,11 @@ contract LPContract is ReentrancyGuard {
         return s_tokenAddressToPriceFeedAddress[tokenAddress];
     }
 
-    function getTotalSunEthInPool() public view returns (uint256) {
-        return totalSunEthInPool;
+    function getTotalwethInPool() public view returns (uint256) {
+        return totalwethInPool;
     }
 
-    function getTotalEarthEthInPool() public view returns (uint256) {
-        return totalEarthEthInPool;
+    function getTotalusdcInPool() public view returns (uint256) {
+        return totalusdcInPool;
     }
 }

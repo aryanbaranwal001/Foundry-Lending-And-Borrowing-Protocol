@@ -3,61 +3,52 @@ pragma solidity ^0.8.0;
 
 import {Test, console} from "lib/forge-std/src/Test.sol";
 import {StdCheats} from "lib/forge-std/src/StdCheats.sol";
-import {DeployLPContract} from "script/DeployLPContract.s.sol";
-import {HelperConfigLPContract} from "script/HelperConfigLPContract.s.sol";
-import {LPContract} from "src/LPContract.sol";
+import {DeployBorrowingContract} from "script/DeployBorrowingContract.s.sol";
+import {HelperConfigBorrowingContract} from "script/HelperConfigBorrowingContract.s.sol";
+import {Bc} from "src/Bc.sol";
 
-import {LPToken} from "src/LPToken.sol";
-import {SunEth} from "src/LPExternalTokens/SunEth.sol";
-import {EarthEth} from "src/LPExternalTokens/EarthEth.sol";
-import {EarthEthAggregator} from "src/LPExternalAggregators/EarthEthAggregator.sol";
-import {SunEthAggregator} from "src/LPExternalAggregators/SunEthAggregator.sol";
+import {BcToken} from "src/BcToken.sol";
+import {Weth} from "src/BorrowingTokens/Weth.sol";
+import {Usdc} from "src/BorrowingTokens/Usdc.sol";
+import {WethAggr} from "src/BorrowingAggregators/WethAggr.sol";
+import {UsdcAggr} from "src/BorrowingAggregators/UsdcAggr.sol";
 
-contract LPContractTest is Test {
-    LPToken lpToken;
-    SunEth sunEth;
-    EarthEth earthEth;
-    SunEthAggregator sunEthAggregator;
-    EarthEthAggregator earthEthAggregator;
 
-    address SunEthAddress;
-    address EarthEthAddress;
-    address SunEthPriceFeedAddress;
-    address EarthEthPriceFeedAddress;
-    address LPTokenAddress;
+contract BcTest is Test {
+    BcToken bcToken;
+    Weth weth;
+    Usdc usdc;
+    WethAggr wethAggr;
+    UsdcAggr usdcAggr;
+
+    address public wethAddress;
+    address public usdcAddress;
+    address public wethAggrAddress;
+    address public usdcAggrAddress;
+    address public bcTokenAddress;
 
     uint256 public constant STARTING_BALANCE = 1000 ether;
     address public USER = makeAddr("USER");
     address public immutable i_initial_owner = msg.sender;
 
-    LPContract lPContract;
-    HelperConfigLPContract helperConfigLPContract;
+    Bc bc;
+    HelperConfigBorrowingContract helperConfigBorrowingContract;
 
     function setUp() public {
-        DeployLPContract deployLPContract = new DeployLPContract();
-        (lPContract, helperConfigLPContract) = deployLPContract.run();
+        DeployBorrowingContract deployBorrowingContract = new DeployBorrowingContract();
+        (bc, helperConfigBorrowingContract) = deployBorrowingContract.run();
 
-        (SunEthAddress, EarthEthAddress, SunEthPriceFeedAddress, EarthEthPriceFeedAddress, LPTokenAddress) =
-            helperConfigLPContract.getNetworkConfigs();
+        (wethAddress, usdcAddress, wethAggrAddress, usdcAggrAddress, bcTokenAddress) =
+            helperConfigBorrowingContract.getNetworkConfigs();
 
-        lpToken = LPToken(LPTokenAddress);
-        sunEth = SunEth(SunEthAddress);
-        earthEth = EarthEth(EarthEthAddress);
-        sunEthAggregator = SunEthAggregator(SunEthPriceFeedAddress);
-        earthEthAggregator = EarthEthAggregator(EarthEthPriceFeedAddress);
+        bcTokenAddress = address(bcToken);
+        wethAddress = address(weth);
+        usdcAddress = address(usdc);
+        wethAggrAddress = address(wethAggr);
+        usdcAggrAddress = address(usdcAggr);
 
         vm.deal(USER, 100 ether);
     }
 
-    // function invariant__testFunctionGetTheMaximumBasketSize() public {
-    //     // The amount of token from this function must be in ratio 1:4, as it depends on initial supply,
-    //     // which depends on the initial prices of SunEth and EarthEth
-    //     uint256 sunEthTokens = bound(uint256(keccak256("sunEthSomething")), 1, 1e18);
-    //     uint256 earthEthTokens = bound(uint256(keccak256("earthEthSomething")), 1, 1e18);
 
-    //     console.log("sunEthTokens", sunEthTokens);
-    //     console.log("earthEthTokens", earthEthTokens);
-    //     (uint256 sun, uint256 earth) = lPContract.getTheMaximumBasket(sunEthTokens, earthEthTokens);
-    //     assert(4 == uint256(earth / sun));
-    // }
 }

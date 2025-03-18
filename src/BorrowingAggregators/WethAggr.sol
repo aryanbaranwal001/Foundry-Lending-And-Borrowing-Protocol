@@ -11,7 +11,7 @@ import "lib/chainlink-brownie-contracts/contracts/src/v0.8/shared/interfaces/Agg
  * aggregator contract, but how the aggregator got
  * its answer is unimportant
  */
-contract SunEthAggregator is AggregatorV2V3Interface {
+contract WethAggr is AggregatorV2V3Interface {
     /*//////////////////////////////////////////////////////////////
                              SUN ETH TOKEN
     //////////////////////////////////////////////////////////////*/

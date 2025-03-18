@@ -3,95 +3,96 @@ pragma solidity ^0.8.0;
 
 import {Test, console} from "lib/forge-std/src/Test.sol";
 import {StdCheats} from "lib/forge-std/src/StdCheats.sol";
-import {DeployLPContract} from "script/DeployLPContract.s.sol";
-import {HelperConfigLPContract} from "script/HelperConfigLPContract.s.sol";
-import {LPContract} from "src/LPContract.sol";
+import {DeployBorrowingContract} from "script/DeployBorrowingContract.s.sol";
+import {HelperConfigBorrowingContract} from "script/HelperConfigBorrowingContract.s.sol";
+import {Bc} from "src/Bc.sol";
 
-import {LPToken} from "src/LPToken.sol";
-import {SunEth} from "src/LPExternalTokens/SunEth.sol";
-import {EarthEth} from "src/LPExternalTokens/EarthEth.sol";
-import {EarthEthAggregator} from "src/LPExternalAggregators/EarthEthAggregator.sol";
-import {SunEthAggregator} from "src/LPExternalAggregators/SunEthAggregator.sol";
+import {BcToken} from "src/BcToken.sol";
+import {Weth} from "src/BorrowingTokens/Weth.sol";
+import {Usdc} from "src/BorrowingTokens/Usdc.sol";
+import {WethAggr} from "src/BorrowingAggregators/WethAggr.sol";
+import {UsdcAggr} from "src/BorrowingAggregators/UsdcAggr.sol";
 
-contract LPContractTest is Test {
-    LPToken lpToken;
-    SunEth sunEth;
-    EarthEth earthEth;
-    SunEthAggregator sunEthAggregator;
-    EarthEthAggregator earthEthAggregator;
 
-    address SunEthAddress;
-    address EarthEthAddress;
-    address SunEthPriceFeedAddress;
-    address EarthEthPriceFeedAddress;
-    address LPTokenAddress;
+contract BcTest is Test {
+    BcToken bcToken;
+    Weth weth;
+    Usdc usdc;
+    WethAggr wethAggr;
+    UsdcAggr usdcAggr;
+
+    address public wethAddress;
+    address public usdcAddress;
+    address public wethAggrAddress;
+    address public usdcAggrAddress;
+    address public bcTokenAddress;
 
     uint256 public constant STARTING_BALANCE = 1000 ether;
     address public USER = makeAddr("USER");
     address public immutable i_initial_owner = msg.sender;
 
-    LPContract lPContract;
-    HelperConfigLPContract helperConfigLPContract;
+    Bc bc;
+    HelperConfigBorrowingContract helperConfigBorrowingContract;
 
     function setUp() public {
-        DeployLPContract deployLPContract = new DeployLPContract();
-        (lPContract, helperConfigLPContract) = deployLPContract.run();
+        DeployBorrowingContract deployBorrowingContract = new DeployBorrowingContract();
+        (bc, helperConfigBorrowingContract) = deployBorrowingContract.run();
 
-        (SunEthAddress, EarthEthAddress, SunEthPriceFeedAddress, EarthEthPriceFeedAddress, LPTokenAddress) =
-            helperConfigLPContract.getNetworkConfigs();
+        (wethAddress, usdcAddress, wethAggrAddress, usdcAggrAddress, bcTokenAddress) =
+            helperConfigBorrowingContract.getNetworkConfigs();
 
-        lpToken = LPToken(LPTokenAddress);
-        sunEth = SunEth(SunEthAddress);
-        earthEth = EarthEth(EarthEthAddress);
-        sunEthAggregator = SunEthAggregator(SunEthPriceFeedAddress);
-        earthEthAggregator = EarthEthAggregator(EarthEthPriceFeedAddress);
+        bcTokenAddress = address(bcToken);
+        wethAddress = address(weth);
+        usdcAddress = address(usdc);
+        wethAggrAddress = address(wethAggr);
+        usdcAggrAddress = address(usdcAggr);
 
         vm.deal(USER, 100 ether);
     }
 
-    function testCheckInitialVolumeOfSunAndEarthTokens() public {
-        uint256 sunEthAmt = lPContract.getTotalSunEthInPool();
-        uint256 earthEthAmt = lPContract.getTotalEarthEthInPool();
+    // function testCheckInitialVolumeOfSunAndEarthTokens() public {
+    //     uint256 sunEthAmt = lPContract.getTotalSunEthInPool();
+    //     uint256 earthEthAmt = lPContract.getTotalEarthEthInPool();
 
-        assert(sunEthAmt == 2.5e18);
-        assert(earthEthAmt == 1e19);
-        assert(sunEth.balanceOf(address(lPContract)) == 2.5e18);
-        assert(earthEth.balanceOf(address(lPContract)) == 1e19);
-    }
+    //     assert(sunEthAmt == 2.5e18);
+    //     assert(earthEthAmt == 1e19);
+    //     assert(sunEth.balanceOf(address(lPContract)) == 2.5e18);
+    //     assert(earthEth.balanceOf(address(lPContract)) == 1e19);
+    // }
 
-    function testMintInitialLPTokens() public {
-        uint256 lpTokenBalanceOfContract = lpToken.balanceOf(address(lPContract));
+    // function testMintInitialLPTokens() public {
+    //     uint256 lpTokenBalanceOfContract = lpToken.balanceOf(address(lPContract));
 
-        assert(lpTokenBalanceOfContract == 5e18);
-    }
+    //     assert(lpTokenBalanceOfContract == 5e18);
+    // }
 
-    function testConstructorTwoStillCallable() public {
-        bool tempVar = lPContract.constructor2();
-        assert(tempVar == true);
-    }
+    // function testConstructorTwoStillCallable() public {
+    //     bool tempVar = lPContract.constructor2();
+    //     assert(tempVar == true);
+    // }
 
-    function testGetTokenFromPoolUsingLPTokens() public giveTokensToUser {
-        vm.prank(USER);
-        lPContract.addToPool(1e16, 4e16);
+    // function testGetTokenFromPoolUsingLPTokens() public giveTokensToUser {
+    //     vm.prank(USER);
+    //     lPContract.addToPool(1e16, 4e16);
 
-        uint256 lpTokenOfUser = lpToken.balanceOf(USER);
+    //     uint256 lpTokenOfUser = lpToken.balanceOf(USER);
 
-        vm.prank(USER);
-        lPContract.getTokensFromPoolUsingLPTokens(lpTokenOfUser);
+    //     vm.prank(USER);
+    //     lPContract.getTokensFromPoolUsingLPTokens(lpTokenOfUser);
 
-        // No reverts mean lPtokenContract's owner is LPContract which is
-        // calling the burn function for USER.
-    }
+    //     // No reverts mean lPtokenContract's owner is LPContract which is
+    //     // calling the burn function for USER.
+    // }
 
-    function testExchangeSunEthForEarthEth() public {
-        // calculated 4e8 by hand using. And checking if this equals to that
-        uint256 anotherTokenAmt = lPContract.getAmtAnotherTokenForAToken(1e8, 1e20, 4e20);
-        assert(anotherTokenAmt == 4e8 - 1);
-    }
+    // function testExchangeSunEthForEarthEth() public {
+    //     // calculated 4e8 by hand using. And checking if this equals to that
+    //     uint256 anotherTokenAmt = lPContract.getAmtAnotherTokenForAToken(1e8, 1e20, 4e20);
+    //     assert(anotherTokenAmt == 4e8 - 1);
+    // }
 
-    modifier giveTokensToUser() {
-        sunEth.mint(USER, 1e18);
-        earthEth.mint(USER, 4e18);
-        _;
-    }
+    // modifier giveTokensToUser() {
+    //     sunEth.mint(USER, 1e18);
+    //     earthEth.mint(USER, 4e18);
+    //     _;
+    // }
 }
