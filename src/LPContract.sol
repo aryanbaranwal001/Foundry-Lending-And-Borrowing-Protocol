@@ -20,6 +20,7 @@ contract LPContract is ReentrancyGuard {
     error LPContract__TransferFailed();
     error LPContract__TokenNotAllowed(address tokenAddress);
     error LPContract__NeedsMoreThanZero();
+    error LPContract__OneTokenCannotBeZero(uint256 sunEthAmount, uint256 earthEthAmount);
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -27,7 +28,8 @@ contract LPContract is ReentrancyGuard {
 
     event AddedToPool(address user, uint256 sunEthAmount, uint256 earthEthAmount);
     event BasketChosenChoices(uint256 sunEthAmount, uint256 earthEthAmount);
-    event BasketChosenFinal(uint256 sunEthAmount, uint256 earthEthAmount);
+    event BasketChosenFinals1e1(uint256 sunEthAmount, uint256 earthEthAmount);
+    event BasketChosenFinals2e2(uint256 sunEthAmount, uint256 earthEthAmount);
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -116,20 +118,22 @@ contract LPContract is ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     function addToPool(uint256 AmountOfSunEth, uint256 AmountOfEarthEth) public {
+        if (AmountOfSunEth == 0 || AmountOfEarthEth == 0) {
+            revert LPContract__OneTokenCannotBeZero(AmountOfSunEth, AmountOfEarthEth);
+        }
         // This function will select the largest basket of token to be added to pool
+
         (uint256 sunEthAmt, uint256 earthEthAmt) = getTheMaximumBasket(AmountOfSunEth, AmountOfEarthEth);
 
-        sunEth.transfer(address(this), (sunEthAmt));
-        earthEth.transfer(address(this), (earthEthAmt));
-        console.log("msg.sender", msg.sender);
-        console.log("sunEth address in contract",address(sunEth));
+        sunEth.transferFromOwner(msg.sender, address(this), (sunEthAmt));
+        earthEth.transferFromOwner(msg.sender, address(this), (earthEthAmt));
 
         uint256 s = getLPTokensAmtToMint(sunEthAmt, totalSunEthInPool);
 
         totalSunEthInPool += sunEthAmt;
         totalEarthEthInPool += earthEthAmt;
 
-        mintLPToken(msg.sender, s);
+        // mintLPToken(msg.sender, s);  // BEWARE BEWARE BEWARE BEWARE BEWARE BEWAREBEWARE BEWARE BEWAREBEWARE BEWARE BEWARE
 
         emit AddedToPool(msg.sender, sunEthAmt, earthEthAmt);
     }
@@ -210,6 +214,10 @@ contract LPContract is ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     function getTheMaximumBasket(uint256 AmountOfSunEth, uint256 AmountOfEarthEth) public returns (uint256, uint256) {
+        if (AmountOfSunEth == 0 || AmountOfEarthEth == 0) {
+            revert LPContract__OneTokenCannotBeZero(AmountOfSunEth, AmountOfEarthEth);
+        }
+
         (uint256 s1, uint256 e1) = getBasket(AmountOfSunEth, AmountOfEarthEth, totalSunEthInPool, totalEarthEthInPool);
         (uint256 s2, uint256 e2) =
             getBasketWithReverse(AmountOfSunEth, AmountOfEarthEth, totalSunEthInPool, totalEarthEthInPool);
@@ -221,13 +229,19 @@ contract LPContract is ReentrancyGuard {
         emit BasketChosenChoices(s2, e2);
 
         if (
-            ((s1 * uint256(SunRateEth) + e1 * uint256(EarthRateEth)))
-                > ((s2 * uint256(SunRateEth) + e2 * uint256(EarthRateEth)))  // overflow error, or underflow error may happen
+            ((s1 * uint256(SunRateEth) + e1 * uint256(EarthRateEth)) / 1e8)
+                > ((s2 * uint256(SunRateEth) + e2 * uint256(EarthRateEth)) / 1e8) // overflow error, or underflow error may happen
         ) {
-            emit BasketChosenFinal(s1, e1);
+            emit BasketChosenFinals1e1(s1, e1);
+            if (s1 == 0 || e1 == 0) {
+                revert LPContract__OneTokenCannotBeZero(s1, e1);
+            }
             return (s1, e1);
         } else {
-            emit BasketChosenFinal(s2, e2);
+            emit BasketChosenFinals2e2(s2, e2);
+            if (s2 == 0 || e2 == 0) {
+                revert LPContract__OneTokenCannotBeZero(s2, e2);
+            }
             return (s2, e2);
         }
     }

@@ -70,13 +70,20 @@ contract LPContractTest is Test {
         assert(tempVar == true);
     }
 
-    function testAddToPool() public {
-        uint256 s2 = sunEth.balanceOf(USER);
-        uint256 e2 = earthEth.balanceOf(USER);
-        console.log(" Initial Balance of User", s2, e2);
+    // function testFunctionGetTheMaximumBasketSize() public {
+    //     // The amount of token
 
-        sunEth.mint(USER, 10 ether);
-        earthEth.mint(USER, 10 ether);
+    //     uint256 tempVar = lPContract.getTheMaximumBasketSize();
+    //     assert(tempVar == 1000);
+    // }
+
+    function testAddToPoolIsTransferingFundsCorrectly() public {
+        // initial balance of use is (0,0)
+
+        sunEth.mint(USER, 3e8);
+        earthEth.mint(USER, 10e8);
+
+        // sunEth address in contract and here is same
 
         uint256 s1 = sunEth.balanceOf(USER);
         uint256 e1 = earthEth.balanceOf(USER);
@@ -86,21 +93,19 @@ contract LPContractTest is Test {
         uint256 e3 = earthEth.balanceOf(address(lPContract));
         console.log(" before add to pool balance of contract", s3, e3);
 
-
-        lPContract.addToPool(10 ether, 8 ether);
+        vm.prank(USER);
+        lPContract.addToPool(3e8, 10e8);
 
         uint256 s4 = sunEth.balanceOf(address(lPContract));
         uint256 e4 = earthEth.balanceOf(address(lPContract));
         console.log(" after add to pool balance of contract", s4, e4);
-
-        console.log("sunEthAddress", address(sunEth));
 
         vm.startPrank(USER);
 
         // uint256 s1 = sunEth.balanceOf(USER);
         // uint256 e1 = earthEth.balanceOf(USER);
         // uint256 s3 = sunEth.balanceOf(address(lPContract));
-        // uint256 e3 = earthEth.balanceOf(address(lPContract));        
+        // uint256 e3 = earthEth.balanceOf(address(lPContract));
         // console.log(s3, e3);
         vm.stopPrank();
     }

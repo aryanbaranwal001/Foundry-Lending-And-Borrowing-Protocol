@@ -48,4 +48,51 @@ contract LPContractTest is Test {
 
         vm.deal(USER, 100 ether);
     }
+
+    function testFunctionGetTheMaximumBasketSize(uint256 sunEthTokens, uint256 earthEthTokens) public {
+        // The amount of token from this function must be in ratio 1:4, as it depends on initial supply,
+        // which depends on the initial prices of SunEth and EarthEth specified in deployLPContract & HelperConfigLPContract
+        sunEthTokens = bound(sunEthTokens, 1e2, 1e18);
+        earthEthTokens = bound(earthEthTokens, 1e2, 1e18);
+
+        (uint256 sun, uint256 earth) = lPContract.getTheMaximumBasket(sunEthTokens, earthEthTokens);
+        assert(4 == uint256(earth / sun));
+    }
+
+    function testAddToPoolIsTransferingFundsCorrectly(uint256 sunInUser, uint256 earthInUser) public {
+        // initial balance of use is (0,0)
+        sunInUser = bound(sunInUser, 1e2, 1e18);
+        earthInUser = bound(earthInUser, 1e2, 1e18);
+
+        sunEth.mint(USER, sunInUser);
+        earthEth.mint(USER, earthInUser);
+
+        uint256 userSunInitial = sunEth.balanceOf(USER);
+        uint256 userEarthInitial = earthEth.balanceOf(USER);
+
+        uint256 contractSunInitial = sunEth.balanceOf(address(lPContract));
+        uint256 contractEarthInitial = earthEth.balanceOf(address(lPContract));
+
+        vm.prank(USER);
+        lPContract.addToPool(sunInUser, earthInUser);
+
+        (uint256 sun, uint256 earth) = lPContract.getTheMaximumBasket(sunInUser, earthInUser);
+
+        uint256 userSunFinal = sunEth.balanceOf(USER);
+        uint256 userEarthFinal = earthEth.balanceOf(USER);
+
+        uint256 contractSunFinal = sunEth.balanceOf(address(lPContract));
+        uint256 contractEarthFinal = earthEth.balanceOf(address(lPContract));
+
+        assert(userSunFinal == userSunInitial - sun);
+        assert(userEarthFinal == userEarthInitial - earth);
+
+        assert(contractSunFinal == contractSunInitial + sun);
+        assert(contractEarthFinal == contractEarthInitial + earth);
+    }
+
+    function testLPTokensAreGettingMintedCorrectly() public {
+        
+    }
+
 }
