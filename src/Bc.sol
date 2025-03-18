@@ -20,18 +20,9 @@ contract Bc is ReentrancyGuard {
     error Bc__tokenPriceFeedAddressesAndTokenAddressesLengthNotSame();
     error Bc__NeedsMoreThanZero();
 
-    error LPContract__TransferFailed();
-    error LPContract__TokenNotAllowed(address tokenAddress);
-    error LPContract__OneTokenCannotBeZero(uint256 wethAmount, uint256 usdcAmount);
-
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
-
-    event AddedToPool(address user, uint256 wethAmount, uint256 usdcAmount);
-    event BasketChosenChoices(uint256 wethAmount, uint256 usdcAmount);
-    event BasketChosenFinals1e1(uint256 wethAmount, uint256 usdcAmount);
-    event BasketChosenFinals2e2(uint256 wethAmount, uint256 usdcAmount);
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -42,10 +33,22 @@ contract Bc is ReentrancyGuard {
         uint256 timestamp;
     }
 
+    struct BorrowWethForUsdc {
+        uint256 collateralUsdc;
+        uint256 borrowedWeth;
+    }
+
+    struct BorrowUsdcForWeth {
+        uint256 collateralWeth;
+        uint256 borrowedUsdc;
+    }
+
     mapping(address => Account[]) public bcTokenMinted;
 
-    mapping(address user => mapping(address tokenAddress => uint256 tokenAmount)) public
-        s_addressToTotalAmounOfParticularToken;
+    mapping(address => BorrowWethForUsdc) public s_borrowWethForUsdc;
+
+    mapping(address => BorrowUsdcForWeth) public s_borrowUsdcForWeth;
+
     mapping(address tokenAddress => address tokenPriceFeedAddress) public s_tokenAddressToPriceFeedAddress;
 
     Weth weth;
@@ -117,7 +120,7 @@ contract Bc is ReentrancyGuard {
 
         // minting BcTokens to address(this) contract
 
-        mintInitialLPToken(amountOfInitialwethInPool, amountOfInitialusdcInPool);
+        mintInitialbcToken(amountOfInitialwethInPool, amountOfInitialusdcInPool);
 
         tempVar = false;
     }
@@ -164,92 +167,131 @@ contract Bc is ReentrancyGuard {
                            WITHDRAW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-
     function withDrawWethFromPool(uint256 bcTokenAmount) public cantBeZero(bcTokenAmount) {
-
-
         uint256 totalBcTokens = getTotalBcTokens(msg.sender, bcTokenAmount);
-        
+
         i_bcToken.burn(msg.sender, totalBcTokens);
         totalBcTokensMinted -= totalBcTokens;
 
         uint256 wethToWithdraw = totalBcTokens / (100 * getRateRatio());
-
 
         weth.transferFromOwner(address(this), msg.sender, wethToWithdraw);
         totalwethInPool -= wethToWithdraw;
     }
 
     function withDrawUsdcFromPool(uint256 bcTokenAmount) public cantBeZero(bcTokenAmount) {
-
-
         uint256 totalBcTokens = getTotalBcTokens(msg.sender, bcTokenAmount);
-        
+
         i_bcToken.burn(msg.sender, totalBcTokens);
         totalBcTokensMinted -= totalBcTokens;
 
-        uint256 usdcToWithdraw = totalBcTokens / 100 );
-
+        uint256 usdcToWithdraw = totalBcTokens / 100;
 
         usdc.transferFromOwner(address(this), msg.sender, usdcToWithdraw);
         totalusdcInPool -= usdcToWithdraw;
     }
 
-
-
-
-
-
     /*//////////////////////////////////////////////////////////////
-                           EXCHANGE FUNCTIONS
+                            BORROW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function exchangewethForusdc(uint256 amountOfweth) public {
-        // implementing x y = k
-        uint256 usdcAmt = getAmtAnotherTokenForAToken(amountOfweth, totalwethInPool, totalusdcInPool);
-
-        weth.transferFromOwner(msg.sender, address(this), amountOfweth);
-        totalwethInPool += amountOfweth;
-
-        usdc.transferFromOwner(address(this), msg.sender, usdcAmt);
-        totalusdcInPool -= usdcAmt;
-    }
-
-    function exchangeusdcForweth(uint256 amountOfusdc) public {
-        // implementing x y = k
-        uint256 wethAmt = getAmtAnotherTokenForAToken(amountOfusdc, totalusdcInPool, totalwethInPool);
-
-        usdc.transferFromOwner(msg.sender, address(this), amountOfusdc);
-        totalusdcInPool += amountOfusdc;
-
-        weth.transferFromOwner(address(this), msg.sender, wethAmt);
-        totalwethInPool -= wethAmt;
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                     CALCULATE ARBITRAGE FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    function getArbitrageForExchangingwethForusdc(uint256 amountOfweth) public returns (uint256) {
+    function borrowWethForUsdc(uint256 amountUsdc) public {
         (, int256 rateweth,,,) = wethAggr.latestRoundData();
         (, int256 rateusdc,,,) = usdcAggr.latestRoundData();
 
-        uint256 usdcAmt = getAmtAnotherTokenForAToken(amountOfweth, totalwethInPool, totalusdcInPool);
+        // TotalValueOfUsdc/TotalValueOfWeth * 100 = 200
+        // 200 % over collaterized
 
-        uint256 amountInDollars =
-            ((usdcAmt * uint256(rateusdc) * 1e10 - (amountOfweth * uint256(rateweth) * 1e10)) / 1e36);
-        return amountInDollars;
+        uint256 amountWethToBorrow = ((amountUsdc * rateusdc) / (rateweth * 2));
+
+        usdc.transferFromOwner(msg.sender, address(this), amountUsdc);
+        weth.transferFromOwner(address(this), msg.sender, amountWethToBorrow);
+
+        totalusdcInPool += amountUsdc;
+        totalwethInPool -= amountWethToBorrow;
+        uint256 UsdcCollateralFromUser = s_borrowWethForUsdc[msg.sender].collateralUsdc;
+        uint256 WethBorrowedToUser = s_borrowWethForUsdc[msg.sender].borrowedWeth;
+
+        UsdcCollateralFromUser += amountUsdc;
+        WethBorrowedToUser += amountWethToBorrow;
+
+        s_borrowWethForUsdc[msg.sender] =
+            BorrowWethForUsdc({collateralUsdc: UsdcCollateralFromUser, borrowedWeth: WethBorrowedToUser});
     }
 
-    function getArbitrageForExchangingusdcForweth(uint256 amountOfusdc) public returns (uint256) {
+    function borrowUsdcForWeth(uint256 amoundWeth) public {
         (, int256 rateweth,,,) = wethAggr.latestRoundData();
         (, int256 rateusdc,,,) = usdcAggr.latestRoundData();
 
-        uint256 wethAmt = getAmtAnotherTokenForAToken(amountOfusdc, totalusdcInPool, totalwethInPool);
+        // TotalValueOfWeth/TotalValueOfUsdc * 100 = 200
+        // 200 % over collaterized
 
-        uint256 amountInDollars =
-            uint256(((wethAmt * uint256(rateweth)) * 1e10 - (amountOfusdc * uint256(rateusdc)) * 1e10) / 1e36);
-        return amountInDollars;
+        uint256 amountOfUsdcToBorrow = ((amoundWeth * rateweth) / (rateusdc * 2));
+
+        weth.transferFromOwner(msg.sender, address(this), amoundWeth);
+        usdc.transferFromOwner(address(this), msg.sender, amountOfUsdcToBorrow);
+
+        totalwethInPool += amoundWeth;
+        totalusdcInPool -= amountOfUsdcToBorrow;
+
+        uint256 WethCollateralFromUser = s_borrowUsdcForWeth[msg.sender].collateralWeth;
+        uint256 UsdcBorrowedToUser = s_borrowUsdcForWeth[msg.sender].borrowedUsdc;
+
+        WethCollateralFromUser += amoundWeth;
+        UsdcBorrowedToUser += amountOfUsdcToBorrow;
+
+        s_borrowUsdcForWeth[msg.sender] =
+            BorrowUsdcForWeth({collateralWeth: WethCollateralFromUser, borrowedUsdc: UsdcBorrowedToUser});
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                    REPAY BORROWED AMOUNT FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    // If we don't take the interest out, then if we repay all collateral into the contract,
+    // then we can get all the borrowed amount back. Hence, at the time of withdrawing, the ratio
+    // of amount of tokens in his account (one struct) will we same.
+
+    function repayUsdcForWeth(uint256 amountUsdc) public {
+        uint256 borrowedUsdcFromUser = s_borrowUsdcForWeth[msg.sender].borrowedUsdc;
+        uint256 collateralWethOfUser = s_borrowUsdcForWeth[msg.sender].collateralWeth;
+
+        uint256 amountOfWethToGetBack = collateralWethOfUser * (amountUsdc / borrowedUsdcFromUser);
+
+        // therefore
+
+        borrowedUsdcFromUser -= amountUsdc;
+        collateralWethOfUser -= amountOfWethToPayBack;
+
+        s_borrowUsdcForWeth[msg.sender] =
+            BorrowUsdcForWeth({collateralWeth: collateralWethOfUser, borrowedUsdc: borrowedUsdcFromUser});
+
+        usdc.transferFromOwner(msg.sender, address(this), amountUsdc);
+        weth.transferFromOwner(address(this), msg.sender, amountOfWethToGetBack * 92 / 100); // 8% interest
+
+        totalusdcInPool += amountUsdc;
+        totalwethInPool -= amountOfWethToGetBack * 92 / 100;
+    }
+
+    function repayWethForUsdc(uint256 amountWeth) public {
+        uint256 borrowedWethFromUser = s_borrowWethForUsdc[msg.sender].borrowedWeth;
+        uint256 collateralUsdcOfUser = s_borrowWethForUsdc[msg.sender].collateralUsdc;
+
+        uint256 amountOfUsdcToGetBack = collateralUsdcOfUser * (amountWeth / borrowedWethFromUser);
+
+        // therefore
+
+        borrowedWethFromUser -= amountWeth;
+        collateralUsdcOfUser -= amountOfUsdcToPayBack;
+
+        s_borrowWethForUsdc[msg.sender] =
+            BorrowWethForUsdc({collateralUsdc: collateralUsdcOfUser, borrowedWeth: borrowedWethFromUser});
+
+        weth.transferFromOwner(msg.sender, address(this), amountWeth);
+        usdc.transferFromOwner(address(this), msg.sender, amountOfUsdcToGetBack * 92 / 100); // 8% interest
+
+        totalwethInPool += amountWeth;
+        totalusdcInPool -= amountOfUsdcToGetBack * 92 / 100;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -257,7 +299,6 @@ contract Bc is ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     function getBcTokensToMintForWeth(uint256 amount) internal returns (uint256) {
-
         return (100 * getRateRatio() * amount);
     }
 
@@ -272,17 +313,13 @@ contract Bc is ReentrancyGuard {
         return (uint256(rateweth) / uint256(rateusdc));
     }
 
-
-
-    function getTotalBcTokens(address user, uint256 amountToWithdraw) internal return(uint256) {
-
+    function getTotalBcTokens(address user, uint256 amountToWithdraw) internal returns (uint256) {
         // getting the values
 
         bool running = true;
         uint256 totalBcAmt = 0;
         uint256 index = 0;
         while (running) {
-
             totalBcAmt += bcTokenMinted[user][index].bcAmount;
 
             if (totalBcAmt > amountToWithdraw) {
@@ -295,164 +332,54 @@ contract Bc is ReentrancyGuard {
 
         // calculating the interest + amount
 
-        uint256 interestPerDay = 8/365;
-        uint256 totalInterestWithAmt = 0;        
-        
-        for (uint256 i = 0; i < index; i++) { // last amt lefts
+        uint256 interestPerDay = 3 / 365;
+        uint256 totalInterestWithAmt = 0;
 
+        for (uint256 i = 0; i < index; i++) {
+            // last amt lefts
             uint256 amountBc = bcTokenMinted[user][i].bcAmount;
             uint256 timeStamp = bcTokenMinted[user][i].timestamp;
             uint256 numOfDays = (block.timestamp - timeStamp) / 1 days;
 
-            uint256 interest =  amountBc * numOfDays * interestPerDay / 100;
+            uint256 interest = amountBc * numOfDays * interestPerDay / 100;
 
             totalInterestWithAmt += amountBc + interest;
         }
         // handling the last one
-                
-            uint256 amountBc = amountToWithdraw - totalBcAmt;
-            uint256 amountLeft = bcTokenMinted[user][index].bcAmount - amountBc;
-            uint256 timestampOfLastOne = bcTokenMinted[user][index].timestamp;
 
-            uint256 timeStamp = bcTokenMinted[user][index].timestamp;
-            uint256 numOfDays = (block.timestamp - timeStamp) / 1 days;
+        uint256 amountBc = amountToWithdraw - totalBcAmt;
+        uint256 amountLeft = bcTokenMinted[user][index].bcAmount - amountBc;
+        uint256 timestampOfLastOne = bcTokenMinted[user][index].timestamp;
 
-            uint256 interest =  amountBc * numOfDays * interestPerDay / 100;
+        uint256 timeStamp = bcTokenMinted[user][index].timestamp;
+        uint256 numOfDays = (block.timestamp - timeStamp) / 1 days;
 
-            totalInterestWithAmt += amountBc + interest;
+        uint256 interest = amountBc * numOfDays * interestPerDay / 100;
 
-            // new accounting
-            tempAccountArray = bcTokenMinted[user]; 
-            bcTokenMinted[user] = new Account[];
-            bcTokenMinted[user].push(Account({bcAmount: amountLeft, timestamp: timestampOfLastOne}));
+        totalInterestWithAmt += amountBc + interest;
 
-            // pushing the rest of the deposites
+        // new accounting
+        tempAccountArray = bcTokenMinted[user];
+        bcTokenMinted[user] = new Account[];
+        bcTokenMinted[user].push(Account({bcAmount: amountLeft, timestamp: timestampOfLastOne}));
 
-            for (uint256 i = index + 1; i < tempAccountArray.length; i++) {
-                bcTokenMinted[user].push(tempAccountArray[i]);
-            }
+        // pushing the rest of the deposites
 
-            // returning the interest with amount
-
-            return totalInterestWithAmt;
-
-
-
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    //////////////// old //////////////
-    function getTheMaximumBasket(uint256 AmountOfweth, uint256 AmountOfusdc) public returns (uint256, uint256) {
-        if (AmountOfweth == 0 || AmountOfusdc == 0) {
-            revert LPContract__OneTokenCannotBeZero(AmountOfweth, AmountOfusdc);
+        for (uint256 i = index + 1; i < tempAccountArray.length; i++) {
+            bcTokenMinted[user].push(tempAccountArray[i]);
         }
 
-        (uint256 s1, uint256 e1) = getBasket(AmountOfweth, AmountOfusdc, totalwethInPool, totalusdcInPool);
-        (uint256 s2, uint256 e2) = getBasketWithReverse(AmountOfweth, AmountOfusdc, totalwethInPool, totalusdcInPool);
+        // returning the interest with amount
 
-        (, int256 SunRateEth,,,) = wethAggr.latestRoundData();
-        (, int256 EarthRateEth,,,) = usdcAggr.latestRoundData();
-
-        emit BasketChosenChoices(s1, e1);
-        emit BasketChosenChoices(s2, e2);
-
-        if (
-            ((s1 * uint256(SunRateEth) + e1 * uint256(EarthRateEth)) / 1e8)
-                > ((s2 * uint256(SunRateEth) + e2 * uint256(EarthRateEth)) / 1e8) // overflow error, or underflow error may happen
-        ) {
-            emit BasketChosenFinals1e1(s1, e1);
-            if (s1 == 0 || e1 == 0) {
-                revert LPContract__OneTokenCannotBeZero(s1, e1);
-            }
-            return (s1, e1);
-        } else {
-            emit BasketChosenFinals2e2(s2, e2);
-            if (s2 == 0 || e2 == 0) {
-                revert LPContract__OneTokenCannotBeZero(s2, e2);
-            }
-            return (s2, e2);
-        }
+        return totalInterestWithAmt;
     }
 
-    function getBasket(uint256 s, uint256 e, uint256 ItotalwethInPool, uint256 ItotalusdcInPool)
-        public
-        nonReentrant
-        returns (uint256, uint256)
-    {
-        int256 x;
-        int256 y;
-        uint256 sun = ItotalwethInPool;
-        uint256 earth = ItotalusdcInPool;
-        int256 z;
-        // (s-z)/e = sun/earth
-        // on solving we get (s*earth - sun*e)/earth = z
-
-        x = int256(s);
-        y = int256((sun * e) / earth);
-
-        z = x - y;
-
-        if (z < 0) {
-            return (0, 0);
-        }
-
-        uint256 s1;
-
-        s1 = (s - uint256(z));
-        return (s1, e);
-    }
-
-    function getBasketWithReverse(uint256 s, uint256 e, uint256 ItotalwethInPool, uint256 ItotalusdcInPool)
-        public
-        returns (uint256, uint256)
-    {
-        (uint256 e1, uint256 s1) = getBasket(e, s, ItotalusdcInPool, ItotalwethInPool);
-        return (s1, e1);
-    }
-
-    function getLPTokensAmtToMint(uint256 tokenGiven, uint256 totalAmtOfTokenGiven) public returns (uint256) {
-        uint256 s = (tokenGiven * totalBcTokensMinted) / totalAmtOfTokenGiven;
-        return s;
-    }
-
-    function mintLPToken(address user, uint256 amount) public {
-        i_bcToken.mint(user, amount);
-    }
-
-    function mintInitialLPToken(uint256 amountOfInitialwethInPool, uint256 amountOfInitialusdcInPool) public {
-
+    function mintInitialbcToken(uint256 amountOfInitialwethInPool, uint256 amountOfInitialusdcInPool) public {
         uint256 tokensToMintFromWeth = getBcTokensToMintForWeth(amountOfInitialwethInPool);
         uint256 tokensToMintFromUsdc = getBcTokensToMintForUsdc(amountOfInitialusdcInPool);
 
-
         totalBcTokensMinted += tokensToMintFromUsdc + tokensToMintFromWeth;
         i_bcToken.mint(address(this), tokensToMint);
-    }
-
-
-    function getAmtAnotherTokenForAToken(uint256 tokenAmount, uint256 tokenTotalAmt, uint256 AnotherTokenTotalAmt)
-        public
-        returns (uint256)
-    {
-        uint256 AnotherTokenAmt = (tokenAmount * AnotherTokenTotalAmt) / (tokenTotalAmt + tokenAmount); // reference from the video link in readme
-        return AnotherTokenAmt;
     }
 
     /*//////////////////////////////////////////////////////////////

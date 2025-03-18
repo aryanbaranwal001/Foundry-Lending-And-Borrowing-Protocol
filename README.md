@@ -18,7 +18,8 @@ so if contract gives 100 bcTokens for a usdc, then it will give 400 bcTokens for
 
 bcTokens minted is fixed at 100 bcTokens for a usdc. For weth, it will vary according to prices.
 
-
+6. When someone borrows one token for another, lets say, token A for token B, for the amount of token B user wants, we take only token A such that its 200% collaterize.
+7. When the value of token A drops such that it becomes less than being 150% collaterize, we liquidate his funds.
 
 
 
