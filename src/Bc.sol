@@ -19,10 +19,7 @@ contract Bc is ReentrancyGuard {
     error Bc__Constructor2hasBeenCalled();
     error Bc__tokenPriceFeedAddressesAndTokenAddressesLengthNotSame();
     error Bc__NeedsMoreThanZero();
-
-    /*//////////////////////////////////////////////////////////////
-                                 EVENTS
-    //////////////////////////////////////////////////////////////*/
+    error Bc__CollaterizationRatioIsFine();
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -258,8 +255,6 @@ contract Bc is ReentrancyGuard {
 
         uint256 amountOfWethToGetBack = collateralWethOfUser * (amountUsdc / borrowedUsdcFromUser);
 
-        // therefore
-
         borrowedUsdcFromUser -= amountUsdc;
         collateralWethOfUser -= amountOfWethToPayBack;
 
@@ -279,8 +274,6 @@ contract Bc is ReentrancyGuard {
 
         uint256 amountOfUsdcToGetBack = collateralUsdcOfUser * (amountWeth / borrowedWethFromUser);
 
-        // therefore
-
         borrowedWethFromUser -= amountWeth;
         collateralUsdcOfUser -= amountOfUsdcToPayBack;
 
@@ -297,6 +290,74 @@ contract Bc is ReentrancyGuard {
     /*//////////////////////////////////////////////////////////////
                          LIQUIDATION FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    // collateral is usdc
+
+    function liquidation_PayWethForUsdc(address user, uint256 amountUsd) public {
+        uint256 borrowedWethFromUser = s_borrowWethForUsdc[user].borrowedWeth;
+        uint256 collateralUsdcOfUser = s_borrowWethForUsdc[user].collateralUsdc;
+
+        // check if collateral is less than 150% of borrowed amount
+
+        (, int256 rateweth,,,) = wethAggr.latestRoundData();
+        (, int256 rateusdc,,,) = usdcAggr.latestRoundData();
+
+        uint256 collateralPercentage = (collateralUsdcOfUser * rateusdc) * 100 / (borrowedWethFromUser * rateweth);
+
+        if (collateralPercentage > 150) revert Bc__CollaterizationRatioIsFine();
+
+        // Implementing the concepts from cyfrin updraft stable coin course
+
+        uint256 amountWethToPay = amountUsd / rateweth;
+
+        uint256 amountUdscToGetBack = (amountUsd * 110) / (100 * rateusdc); // 110/100 is liquidity bonus
+
+        weth.transferFromOwner(msg.sender, address(this), amountWethToPay);
+        usdc.transferFromOwner(address(this), msg.sender, amountUdscToGetBack);
+
+        totalwethInPool -= amountWethToPay;
+        totalusdcInPool += amountUdscToGetBack;
+
+        borrowedWethFromUser -= amountWethToPay;
+        collateralUsdcOfUser -= amountUdscToGetBack;
+
+        s_borrowWethForUsdc[user] =
+            BorrowWethForUsdc({collateralUsdc: collateralUsdcOfUser, borrowedWeth: borrowedWethFromUser});
+    }
+
+    // collateral is weth
+
+    function liquidation_PayUsdcForWeth(address user, uint256 amountUsd) public {
+        uint256 borrowedUsdcFromUser = s_borrowUsdcForWeth[user].borrowedUsdc;
+        uint256 collateralWethOfUser = s_borrowUsdcForWeth[user].collateralWeth;
+
+        // check if collateral is less than 150% of borrowed amount
+
+        (, int256 rateweth,,,) = wethAggr.latestRoundData();
+        (, int256 rateusdc,,,) = usdcAggr.latestRoundData();
+
+        uint256 collateralPercentage = (collateralWethOfUser * rateweth) * 100 / (borrowedUsdcFromUser * rateusdc);
+
+        if (collateralPercentage > 150) revert Bc__CollaterizationRatioIsFine();
+
+        // Implementing the concepts from cyfrin updraft stable coin course
+
+        uint256 amountUsdcToPay = amountUsd / rateusdc;
+
+        uint256 amountWethToGetBack = (amountUsd * 110) / (100 * rateweth); // 110/100 is liquidity bonus
+
+        usdc.transferFromOwner(msg.sender, address(this), amountUsdcToPay);
+        weth.transferFromOwner(address(this), msg.sender, amountWethToGetBack);
+
+        totalusdcInPool -= amountUsdcToPay;
+        totalwethInPool += amountWethToGetBack;
+
+        borrowedUsdcFromUser -= amountUsdcToPay;
+        collateralWethOfUser -= amountWethToGetBack;
+
+        s_borrowUsdcForWeth[user] =
+            BorrowUsdcForWeth({collateralWeth: collateralWethOfUser, borrowedUsdc: borrowedUsdcFromUser});
+    }
 
     /*//////////////////////////////////////////////////////////////
                             HELPER FUNCTIONS
