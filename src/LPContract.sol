@@ -133,7 +133,7 @@ contract LPContract is ReentrancyGuard {
         totalSunEthInPool += sunEthAmt;
         totalEarthEthInPool += earthEthAmt;
 
-        // mintLPToken(msg.sender, s);  // BEWARE BEWARE BEWARE BEWARE BEWARE BEWAREBEWARE BEWARE BEWAREBEWARE BEWARE BEWARE
+        mintLPToken(msg.sender, s);
 
         emit AddedToPool(msg.sender, sunEthAmt, earthEthAmt);
     }
@@ -164,10 +164,10 @@ contract LPContract is ReentrancyGuard {
         // implementing x y = k
         uint256 earthEthAmt = getAmtAnotherTokenForAToken(amountOfSunEth, totalSunEthInPool, totalEarthEthInPool);
 
-        sunEth.transfer(address(this), amountOfSunEth);
+        sunEth.transferFromOwner(msg.sender, address(this), amountOfSunEth);
         totalSunEthInPool += amountOfSunEth;
 
-        earthEth.transfer(msg.sender, earthEthAmt);
+        earthEth.transferFromOwner(address(this), msg.sender, earthEthAmt);
         totalEarthEthInPool -= earthEthAmt;
     }
 
@@ -175,10 +175,10 @@ contract LPContract is ReentrancyGuard {
         // implementing x y = k
         uint256 sunEthAmt = getAmtAnotherTokenForAToken(amountOfEarthEth, totalEarthEthInPool, totalSunEthInPool);
 
-        earthEth.transfer(address(this), amountOfEarthEth);
+        earthEth.transferFromOwner(msg.sender, address(this), amountOfEarthEth);
         totalEarthEthInPool += amountOfEarthEth;
 
-        sunEth.transfer(msg.sender, sunEthAmt);
+        sunEth.transferFromOwner(address(this), msg.sender, sunEthAmt);
         totalSunEthInPool -= sunEthAmt;
     }
 

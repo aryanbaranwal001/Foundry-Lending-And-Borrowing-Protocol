@@ -49,6 +49,8 @@ contract LPContractTest is Test {
         vm.deal(USER, 100 ether);
     }
 
+    ////////////////// addToPool function tests //////////////////
+
     function testFunctionGetTheMaximumBasketSize(uint256 sunEthTokens, uint256 earthEthTokens) public {
         // The amount of token from this function must be in ratio 1:4, as it depends on initial supply,
         // which depends on the initial prices of SunEth and EarthEth specified in deployLPContract & HelperConfigLPContract
@@ -59,7 +61,7 @@ contract LPContractTest is Test {
         assert(4 == uint256(earth / sun));
     }
 
-    function testAddToPoolIsTransferingFundsCorrectly(uint256 sunInUser, uint256 earthInUser) public {
+    function testAddToPoolIsTransferingFundsWithoutError(uint256 sunInUser, uint256 earthInUser) public {
         // initial balance of use is (0,0)
         sunInUser = bound(sunInUser, 1e2, 1e18);
         earthInUser = bound(earthInUser, 1e2, 1e18);
@@ -90,9 +92,4 @@ contract LPContractTest is Test {
         assert(contractSunFinal == contractSunInitial + sun);
         assert(contractEarthFinal == contractEarthInitial + earth);
     }
-
-    function testLPTokensAreGettingMintedCorrectly() public {
-        
-    }
-
 }

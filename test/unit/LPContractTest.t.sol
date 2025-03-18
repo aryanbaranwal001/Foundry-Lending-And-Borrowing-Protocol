@@ -70,43 +70,28 @@ contract LPContractTest is Test {
         assert(tempVar == true);
     }
 
-    // function testFunctionGetTheMaximumBasketSize() public {
-    //     // The amount of token
+    function testGetTokenFromPoolUsingLPTokens() public giveTokensToUser {
+        vm.prank(USER);
+        lPContract.addToPool(1e16, 4e16);
 
-    //     uint256 tempVar = lPContract.getTheMaximumBasketSize();
-    //     assert(tempVar == 1000);
-    // }
-
-    function testAddToPoolIsTransferingFundsCorrectly() public {
-        // initial balance of use is (0,0)
-
-        sunEth.mint(USER, 3e8);
-        earthEth.mint(USER, 10e8);
-
-        // sunEth address in contract and here is same
-
-        uint256 s1 = sunEth.balanceOf(USER);
-        uint256 e1 = earthEth.balanceOf(USER);
-        console.log(" after minting Balance of User", s1, e1);
-
-        uint256 s3 = sunEth.balanceOf(address(lPContract));
-        uint256 e3 = earthEth.balanceOf(address(lPContract));
-        console.log(" before add to pool balance of contract", s3, e3);
+        uint256 lpTokenOfUser = lpToken.balanceOf(USER);
 
         vm.prank(USER);
-        lPContract.addToPool(3e8, 10e8);
+        lPContract.getTokensFromPoolUsingLPTokens(lpTokenOfUser);
 
-        uint256 s4 = sunEth.balanceOf(address(lPContract));
-        uint256 e4 = earthEth.balanceOf(address(lPContract));
-        console.log(" after add to pool balance of contract", s4, e4);
+        // No reverts mean lPtokenContract's owner is LPContract which is
+        // calling the burn function for USER.
+    }
 
-        vm.startPrank(USER);
+    function testExchangeSunEthForEarthEth() public {
+        // calculated 4e8 by hand using. And checking if this equals to that
+        uint256 anotherTokenAmt = lPContract.getAmtAnotherTokenForAToken(1e8, 1e20, 4e20);
+        assert(anotherTokenAmt == 4e8 - 1);
+    }
 
-        // uint256 s1 = sunEth.balanceOf(USER);
-        // uint256 e1 = earthEth.balanceOf(USER);
-        // uint256 s3 = sunEth.balanceOf(address(lPContract));
-        // uint256 e3 = earthEth.balanceOf(address(lPContract));
-        // console.log(s3, e3);
-        vm.stopPrank();
+    modifier giveTokensToUser() {
+        sunEth.mint(USER, 1e18);
+        earthEth.mint(USER, 4e18);
+        _;
     }
 }
