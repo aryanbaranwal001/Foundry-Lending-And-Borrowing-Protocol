@@ -1,14 +1,22 @@
-# Automated Market Maker Implementation
+# Lending Borrowing Protocol
 
 
-### This Automated market maker has following features
+### This Lending Borrowing Protocol has following features
 
-1. The initial pool has a total of $2_000_000 value, with $1_000_000 each of the SunEth token and EarthEth Token. Hence, contract starts with a good enough liquidity to minimize arbitrage as much as possible. 
-2. I have use mockV3aggregator pricefeeds to get this project as close as possible to how AMMs actually work
-3. I have arbitrage checker functions which would show how much of a profit or loss a user is getting for exchanging one kind of token for another in USD.
-4. Liquidity pool providers will get another token called LPToken which they can use to get both token in ratio such that it doesn't affect the price of one token in terms of other ,i.e., opportunity for arbitrage is same as before. 
-5. LPToken serve as a share of pool.
-6. Have to implement my own transfer function in ERC20, as transferFrom does something with approval thingy which I don't want and transfer function doesn't take (address from) as a input.
+1. The initial pool has a total of $20_000 value, with $10_000 each of the weth token and usdc token.
+2. I have use mockV3aggregator pricefeeds to get the price of each tokens in usd.
+3. The depositers will get a bcToken which similar to cETH or aWeth. Over the time exchange rate between (usdc & BcToken) and (weth & BcToken) will increase in a way to account for 3% interest on amount deposited.
+4. Borrowers will have to deposite a collateral in order to borrow another token such that the borrowed token is always 150% collaterised. This ensure that borrowed token is sufficiently backed enough. They will have to pay a interest of 8% in the borrowed amount.
+5. Depositors will get bcTokens according to the price ratio of both tokens in the market
+
+Ex. 
+
+1 weth = $4000
+1 usdc = $1000
+
+so if contract gives 100 bcTokens for a usdc, then it will give 400 bcTokens for a weth. 
+
+bcTokens minted is fixed at 100 bcTokens for a usdc. For weth, it will vary according to prices.
 
 
 

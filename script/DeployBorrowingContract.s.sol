@@ -28,9 +28,7 @@ contract DeployBorrowingContract is Script {
         tokenPriceFeedAddresses = [wethAggrAddress, usdcAggrAddress];
 
         vm.startBroadcast();
-        Bc bc = new Bc(
-            tokenAddresses, tokenPriceFeedAddresses, bcTokenAddress, InitialTotalValueOfOneAssetInPoolInUsd
-        );
+        Bc bc = new Bc(tokenAddresses, tokenPriceFeedAddresses, bcTokenAddress, InitialTotalValueOfOneAssetInPoolInUsd);
 
         // transfers the ownership of BcToken to Bc
 

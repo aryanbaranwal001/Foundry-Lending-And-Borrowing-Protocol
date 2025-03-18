@@ -13,7 +13,6 @@ import {Usdc} from "src/BorrowingTokens/Usdc.sol";
 import {WethAggr} from "src/BorrowingAggregators/WethAggr.sol";
 import {UsdcAggr} from "src/BorrowingAggregators/UsdcAggr.sol";
 
-
 contract BcTest is Test {
     BcToken bcToken;
     Weth weth;
@@ -51,10 +50,10 @@ contract BcTest is Test {
     }
 
     // function testMintAndBalanceForNotOwner() public {
-        // Few Console.logs for clarity
-        // console.log("msg.sender", LPToken.getOwner());
-        // console.log("msg.sender", msg.sender);
-        // console.log("i_initial_owner", i_initial_owner);
-        // console.log("Address(this)", address(this));
+    // Few Console.logs for clarity
+    // console.log("msg.sender", LPToken.getOwner());
+    // console.log("msg.sender", msg.sender);
+    // console.log("i_initial_owner", i_initial_owner);
+    // console.log("Address(this)", address(this));
     // }
 }
